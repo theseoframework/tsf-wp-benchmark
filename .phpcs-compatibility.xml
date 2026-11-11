@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<ruleset name="TSF Benchmark PHP compatibility">
+	<description>Override the imported TSF plugin PHP floor for this standalone runner.</description>
+	<config name="testVersion" value="8.2-"/>
+</ruleset>

@@ -1,0 +1,17 @@
+{
+  "provider": "native",
+  "document_root": "/absolute/path/to/an-approved-dedicated-site",
+  "url": "http://benchmark.local",
+  "php": "/absolute/path/to/php",
+  "database": {
+    "host": "127.0.0.1:3306",
+    "name": "benchmark",
+    "user": "benchmark",
+    "password": "replace-in-a-private-copy"
+  },
+  "downloads": false,
+  "isolation": {
+    "mode": "offline",
+    "description": "After all archives are cached, disconnect external networking while leaving loopback available. Verify this before the agent records isolation approval."
+  }
+}

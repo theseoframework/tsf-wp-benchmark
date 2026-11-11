@@ -1,0 +1,252 @@
+{
+  "schema": 1,
+  "id": "tsf-5.2.1-reference-v1",
+  "name": "The SEO Framework 5.2.1 benchmark",
+  "reference": true,
+  "description": "A suggested experiment, not a promised result. This portable recipe needs fresh reference evidence; the historical 1.52x comparison used TSF 5.2.0.",
+  "wordpress": {
+    "version": "7.1.3",
+    "url": "https://wordpress.org/wordpress-7.1.3.zip",
+    "sha256": "eb58a90ed55147f90f7bd55d0d3334960a69b7e8a4cc142c8ddfea8965218227"
+  },
+  "theme": {
+    "version": "1.5",
+    "url": "https://wordpress.org/wordpress-7.1.3.zip",
+    "sha256": "eb58a90ed55147f90f7bd55d0d3334960a69b7e8a4cc142c8ddfea8965218227",
+    "slug": "twentytwentyfive",
+    "bundled": true
+  },
+  "environment": {
+    "reference_php": "8.4.27",
+    "opcache": "shared-memory",
+    "profiling": "off",
+    "network": "isolated"
+  },
+  "arms": [
+    {
+      "id": "core-a",
+      "name": "WordPress control A",
+      "packages": [],
+      "setup": "core"
+    },
+    {
+      "id": "tsf",
+      "name": "The SEO Framework",
+      "packages": [
+        {
+          "slug": "autodescription",
+          "version": "5.2.1",
+          "main": "autodescription/autodescription.php",
+          "url": "https://downloads.wordpress.org/plugin/autodescription.5.2.1.zip",
+          "sha256": "9e18a34a4437ddf7ec5a6e1dea6d1e59408db6e59944b8fc672250b80fdbd3fa"
+        }
+      ],
+      "setup": "tsf"
+    },
+    {
+      "id": "yoast",
+      "name": "Yoast SEO",
+      "packages": [
+        {
+          "slug": "wordpress-seo",
+          "version": "28.8",
+          "main": "wordpress-seo/wp-seo.php",
+          "url": "https://downloads.wordpress.org/plugin/wordpress-seo.28.8.zip",
+          "sha256": "27cc01cb149db7186ef750552a5cc2ae5028933473886e419918af273b075105"
+        }
+      ],
+      "setup": "yoast"
+    },
+    {
+      "id": "aioseo-default",
+      "name": "AIOSEO with default companions",
+      "packages": [
+        {
+          "slug": "all-in-one-seo-pack",
+          "version": "5.0.5",
+          "main": "all-in-one-seo-pack/all_in_one_seo_pack.php",
+          "url": "https://downloads.wordpress.org/plugin/all-in-one-seo-pack.5.0.5.zip",
+          "sha256": "26fcc2a53bce1b70dea519dd3c4f71d54960ae0e8ea5a65511c6bf8d33900149"
+        },
+        {
+          "slug": "google-analytics-for-wordpress",
+          "version": "11.3.0",
+          "main": "google-analytics-for-wordpress/googleanalytics.php",
+          "url": "https://downloads.wordpress.org/plugin/google-analytics-for-wordpress.11.3.0.zip",
+          "sha256": "9155c41b94723c5bfddb937a6066bcb57392ca5a2b3fb260c7041da0e676f663"
+        },
+        {
+          "slug": "optinmonster",
+          "version": "2.17.1",
+          "main": "optinmonster/optin-monster-wp-api.php",
+          "url": "https://downloads.wordpress.org/plugin/optinmonster.2.17.1.zip",
+          "sha256": "0987a41c77e545b8ff99fe2499e2231f7a14e4d4ff96b6e86a5855a19e41b53a"
+        },
+        {
+          "slug": "broken-link-checker-seo",
+          "version": "1.3.1",
+          "main": "broken-link-checker-seo/aioseo-broken-link-checker.php",
+          "url": "https://downloads.wordpress.org/plugin/broken-link-checker-seo.1.3.1.zip",
+          "sha256": "6ec1053876ff0e7cbec5b3ce0653e0e8cb04eaf060ef14f830d0723f9df45a39"
+        },
+        {
+          "slug": "universally-language-translation-multilingual-tool",
+          "version": "1.0.11",
+          "main": "universally-language-translation-multilingual-tool/universally.php",
+          "url": "https://downloads.wordpress.org/plugin/universally-language-translation-multilingual-tool.1.0.11.zip",
+          "sha256": "1f90cd9057f26b638fb07f483c9a4ebde89017fe469c85eeb3cb2d16679137d6"
+        }
+      ],
+      "setup": "aioseo"
+    },
+    {
+      "id": "aioseo",
+      "name": "AIOSEO standalone",
+      "packages": [
+        {
+          "slug": "all-in-one-seo-pack",
+          "version": "5.0.5",
+          "main": "all-in-one-seo-pack/all_in_one_seo_pack.php",
+          "url": "https://downloads.wordpress.org/plugin/all-in-one-seo-pack.5.0.5.zip",
+          "sha256": "26fcc2a53bce1b70dea519dd3c4f71d54960ae0e8ea5a65511c6bf8d33900149"
+        }
+      ],
+      "setup": "aioseo"
+    },
+    {
+      "id": "rankmath",
+      "name": "Rank Math",
+      "packages": [
+        {
+          "slug": "seo-by-rank-math",
+          "version": "1.0.281",
+          "main": "seo-by-rank-math/rank-math.php",
+          "url": "https://downloads.wordpress.org/plugin/seo-by-rank-math.1.0.281.zip",
+          "sha256": "d3d464bb2b3b619e46cd93c16a8d21073c473bd411867c1c8d73110debd0ba29"
+        }
+      ],
+      "setup": "rankmath"
+    },
+    {
+      "id": "seopress",
+      "name": "SEOPress",
+      "packages": [
+        {
+          "slug": "wp-seopress",
+          "version": "10.4",
+          "main": "wp-seopress/seopress.php",
+          "url": "https://downloads.wordpress.org/plugin/wp-seopress.10.4.zip",
+          "sha256": "8f50bce7ac7c8ea5f88800d4f06c429633d163103094403eed23da2b3e82c98d"
+        }
+      ],
+      "setup": "seopress"
+    },
+    {
+      "id": "slim",
+      "name": "Slim SEO",
+      "packages": [
+        {
+          "slug": "slim-seo",
+          "version": "4.11.5",
+          "main": "slim-seo/slim-seo.php",
+          "url": "https://downloads.wordpress.org/plugin/slim-seo.4.11.5.zip",
+          "sha256": "f1b9cf7defdde4956f51bce1e7950281c506077e93007b1e9bcec60280fbe4c2"
+        }
+      ],
+      "setup": "slim"
+    },
+    {
+      "id": "core-b",
+      "name": "WordPress control B",
+      "packages": [],
+      "setup": "core"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home-blog",
+      "path": "/",
+      "context": "blog",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "home-static",
+      "path": "/",
+      "context": "static",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "blog-page",
+      "path": "/?page_id={blog_id}",
+      "context": "static",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "post",
+      "path": "/?p={post_id}",
+      "context": "static",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "page",
+      "path": "/?page_id={page_id}",
+      "context": "static",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "category",
+      "path": "/?cat={category_id}",
+      "context": "static",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "tag",
+      "path": "/?tag=benchmark-tag",
+      "context": "static",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "search",
+      "path": "/?s=benchmark",
+      "context": "static",
+      "status": 200,
+      "kind": "html"
+    },
+    {
+      "id": "404",
+      "path": "/?p=2147483000",
+      "context": "static",
+      "status": 404,
+      "kind": "html"
+    }
+  ],
+  "fixtures": {
+    "posts": 120,
+    "pages": 30,
+    "paragraphs": 12,
+    "content_html": "<!-- wp:paragraph --><p>This benchmark article includes a title, useful links, text, and structured content for search engines.</p><!-- /wp:paragraph -->",
+    "date": "2020-01-15 12:00:00",
+    "title": "Benchmark website",
+    "description": "A deterministic website for independent SEO performance tests.",
+    "posts_per_page": 10
+  },
+  "measurement": {
+    "passes": 3,
+    "warmups": 3,
+    "samples": 6,
+    "seed": 521,
+    "bootstrap": 5000
+  },
+  "comparison": {
+    "anchor": "tsf",
+    "threshold": 1.5,
+    "confidence": 0.95
+  }
+}

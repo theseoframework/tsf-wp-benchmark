@@ -1,0 +1,252 @@
+<?xml version="1.0"?>
+<ruleset name="TSF WordPress Benchmark">
+	<description>TSF conventions for the native CLI runner and its isolated WordPress fixtures.</description>
+
+	<!-- Use an already-installed TSF standard; this repository installs no tools. -->
+	<rule ref="TSF"/>
+	<!-- Imported last because TSF otherwise overwrites a root-level testVersion setting. -->
+	<rule ref="./.phpcs-compatibility.xml"/>
+
+	<arg name="extensions" value="php"/>
+	<file>.</file>
+	<exclude-pattern>/\.local/</exclude-pattern>
+	<exclude-pattern>/\.git/</exclude-pattern>
+	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>*.min.js</exclude-pattern>
+	<exclude-pattern>*.min.css</exclude-pattern>
+
+	<!-- These functions belong to this namespace. A global prefix would change their target. -->
+	<rule ref="TSF.Performance.Opcodes">
+		<properties>
+			<property name="userNoopChecks" type="array">
+				<element value="absolute_path"/>
+				<element value="all_packages"/>
+				<element value="analyze"/>
+				<element value="approve_plan"/>
+				<element value="approved_plan"/>
+				<element value="assert_runtime"/>
+				<element value="assess_runtime"/>
+				<element value="balanced_orders"/>
+				<element value="bootstrap_ratios"/>
+				<element value="cleanup_fixtures"/>
+				<element value="cleanup_verified"/>
+				<element value="collect_run"/>
+				<element value="confirm_isolation"/>
+				<element value="create_plan"/>
+				<element value="digest"/>
+				<element value="discover_environment"/>
+				<element value="evidence_input"/>
+				<element value="execute"/>
+				<element value="export_evidence"/>
+				<element value="export_samples"/>
+				<element value="extract_archive"/>
+				<element value="fetch_archive"/>
+				<element value="find_executable"/>
+				<element value="fixture_content"/>
+				<element value="fixture_control"/>
+				<element value="fixture_post_data"/>
+				<element value="ini_enabled"/>
+				<element value="lock_run"/>
+				<element value="main"/>
+				<element value="make_directory"/>
+				<element value="median"/>
+				<element value="next_random"/>
+				<element value="normalized_path"/>
+				<element value="parse_arguments"/>
+				<element value="percentile"/>
+				<element value="php_command"/>
+				<element value="prepare_run"/>
+				<element value="provision_fixture"/>
+				<element value="public_environment"/>
+				<element value="public_recipe"/>
+				<element value="qualify_response"/>
+				<element value="read_json"/>
+				<element value="read_samples"/>
+				<element value="remove_owned_tree"/>
+				<element value="render_environment"/>
+				<element value="render_fixture_config"/>
+				<element value="render_report"/>
+				<element value="report_escape"/>
+				<element value="report_number"/>
+				<element value="report_run"/>
+				<element value="request"/>
+				<element value="require_contained"/>
+				<element value="require_unlinked_path"/>
+				<element value="run_fixture_command"/>
+				<element value="runner_manifest"/>
+				<element value="selected_output"/>
+				<element value="start_telemetry"/>
+				<element value="stop_telemetry"/>
+				<element value="summarize_route"/>
+				<element value="summarize_telemetry_readings"/>
+				<element value="telemetry_command"/>
+				<element value="telemetry_coverage"/>
+				<element value="telemetry_timestamp"/>
+				<element value="validate_fixture_recipe"/>
+				<element value="validate_origin"/>
+				<element value="validate_package"/>
+				<element value="validate_public_package_url"/>
+				<element value="validate_public_receipt"/>
+				<element value="validate_recipe"/>
+				<element value="validate_target"/>
+				<element value="verify_evidence_manifest"/>
+				<element value="verify_private_recipe"/>
+				<element value="verify_source_tree"/>
+				<element value="write_bytes"/>
+				<element value="write_json"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Host-side validation must read current filesystem state; these are not WordPress hot paths. -->
+	<rule ref="TSF.Performance.Functions.PHP">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+		<!-- One-time plugin API discovery and fresh request-body reads are required control operations. -->
+		<exclude-pattern>/scripts/(?:plugin-setup|probe)\.php$</exclude-pattern>
+	</rule>
+
+	<!-- CLI text and process exit codes are not HTML. Keep HTML/HTTP output checks enabled elsewhere. -->
+	<rule ref="WordPress.Security.EscapeOutput.OutputNotEscaped">
+		<exclude-pattern>/benchmark\.php$</exclude-pattern>
+		<exclude-pattern>/src/Runner\.php$</exclude-pattern>
+		<exclude-pattern>/tests/run\.php$</exclude-pattern>
+		<exclude-pattern>/tests/fixtures/setup/(?:cleanup-receipt|local-target)\.php$</exclude-pattern>
+	</rule>
+
+	<!-- Native HTTP transport runs outside WordPress and intentionally measures its complete response. -->
+	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_close">
+		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_error">
+		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_exec">
+		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_getinfo">
+		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_init">
+		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_setopt">
+		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_setopt_array">
+		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+	</rule>
+
+	<!-- Native file operations manage owned host artifacts before WordPress exists. -->
+	<rule ref="WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_chmod">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fclose">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+		<!-- The HTTP isolation canary closes a TCP socket, not a WordPress file. -->
+		<exclude-pattern>/scripts/probe\.php$</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fopen">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_mkdir">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_rmdir">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.rename_rename">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.WP.AlternativeFunctions.unlink_unlink">
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+	</rule>
+
+	<!-- These globals are the required WordPress configuration variable and its offline database double. -->
+	<rule ref="WordPress.WP.GlobalVariablesOverride.Prohibited">
+		<exclude-pattern>/scripts/stubs/wp-config\.php$</exclude-pattern>
+		<exclude-pattern>/tests/fixtures/installer/wp-load\.php$</exclude-pattern>
+	</rule>
+
+	<!-- The native runner starts owned PHP/telemetry processes; the HTTP test starts its own local server. -->
+	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open">
+		<exclude-pattern>/src/(?:Common|Telemetry)\.php$</exclude-pattern>
+		<exclude-pattern>/tests/http\.php$</exclude-pattern>
+	</rule>
+	<!-- var_export returns escaped PHP literals for generated configuration; it does not print diagnostics. -->
+	<rule ref="WordPress.PHP.DevelopmentFunctions.error_log_var_export">
+		<exclude-pattern>/src/Fixtures\.php$</exclude-pattern>
+	</rule>
+	<!-- Recovery deliberately connects without loading WordPress, including after fixture files are removed. -->
+	<rule ref="WordPress.DB.RestrictedClasses.mysql__mysqli">
+		<exclude-pattern>/scripts/drop-owned-tables\.php$</exclude-pattern>
+	</rule>
+
+	<!-- The probe and test harness inspect error_reporting() without changing its value. -->
+	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.runtime_configuration_error_reporting">
+		<exclude-pattern>/scripts/probe\.php$</exclude-pattern>
+		<exclude-pattern>/tests/run\.php$</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.PHP.DevelopmentFunctions.prevent_path_disclosure_error_reporting">
+		<exclude-pattern>/scripts/probe\.php$</exclude-pattern>
+		<exclude-pattern>/tests/run\.php$</exclude-pattern>
+	</rule>
+	<!-- Owned fixture configuration records diagnostics privately while keeping debug instrumentation disabled. -->
+	<rule ref="WordPress.PHP.IniSet.log_errors_Disallowed">
+		<exclude-pattern>/scripts/stubs/wp-config\.php$</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.PHP.IniSet.display_errors_Disallowed">
+		<exclude-pattern>/scripts/stubs/wp-config\.php$</exclude-pattern>
+	</rule>
+	<rule ref="WordPress.PHP.IniSet.Risky">
+		<exclude-pattern>/scripts/stubs/wp-config\.php$</exclude-pattern>
+	</rule>
+
+	<!-- Checked exclusive file creation protects private paths; failed socket probes are expected observations. -->
+	<rule ref="WordPress.PHP.NoSilencedErrors.Discouraged">
+		<exclude-pattern>/scripts/(?:fixture-cli|local-target|probe)\.php$</exclude-pattern>
+		<exclude-pattern>/tests/http\.php$</exclude-pattern>
+	</rule>
+
+	<!-- Offline doubles retain external API signatures, even when a particular test does not consume every argument. -->
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.Found">
+		<exclude-pattern>/tests/fixtures/installer/wp-load\.php$</exclude-pattern>
+		<exclude-pattern>/tests/fixtures/plugins/setup-apis\.php$</exclude-pattern>
+	</rule>
+	<rule ref="Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed">
+		<exclude-pattern>/tests/fixtures/installer/wp-load\.php$</exclude-pattern>
+		<exclude-pattern>/tests/fixtures/plugins/setup-apis\.php$</exclude-pattern>
+	</rule>
+	<!-- These self-contained fixtures model several external symbols in one isolated process. -->
+	<rule ref="Generic.Files.OneObjectStructurePerFile.MultipleFound">
+		<exclude-pattern>/tests/fixtures/plugins/setup-apis\.php$</exclude-pattern>
+	</rule>
+	<rule ref="Universal.Files.SeparateFunctionsFromOO.Mixed">
+		<exclude-pattern>/tests/fixtures/installer/wp-load\.php$</exclude-pattern>
+		<exclude-pattern>/tests/fixtures/plugins/setup-apis\.php$</exclude-pattern>
+		<exclude-pattern>/tests/fixtures/setup/(?:drop-owned-tables|local-target)\.php$</exclude-pattern>
+	</rule>
+	<!-- searchOptionByKey is SEOPress's external API spelling; the recovery double models PHP's lowercase mysqli class. -->
+	<rule ref="WordPress.NamingConventions.ValidFunctionName.MethodNameInvalid">
+		<exclude-pattern>/tests/fixtures/plugins/setup-apis\.php$</exclude-pattern>
+	</rule>
+	<rule ref="PEAR.NamingConventions.ValidClassName.StartWithCapital">
+		<exclude-pattern>/tests/fixtures/setup/drop-owned-tables\.php$</exclude-pattern>
+	</rule>
+	<!-- This negative test verifies that an excessive pagination limit is rejected. -->
+	<rule ref="WordPress.WP.PostsPerPage.posts_per_page_posts_per_page">
+		<exclude-pattern>/tests/fixture-config\.php$</exclude-pattern>
+	</rule>
+	<!-- The test harness converts unexpected PHP diagnostics into failing tests. -->
+	<rule ref="WordPress.PHP.DevelopmentFunctions.error_log_set_error_handler">
+		<exclude-pattern>/tests/run\.php$</exclude-pattern>
+	</rule>
+</ruleset>

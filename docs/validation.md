@@ -14,6 +14,18 @@ Checked on 2026-11-11 without installing software or creating a WordPress site:
 - The final integrity pass exercised native Windows junctions, corrupt ZIP entries, replaced ownership paths, malformed cleanup receipts, and nested evidence fingerprints. Recovery files and unrelated resources remain intact in these adversarial cases.
 - PHP_CodeSniffer 3.13.6, already installed for VS Code, checks all public PHP with the repository's TSF-based ruleset. The PHP target is 8.2+, and CLI/test exceptions are limited to their documented diagnostic codes and paths. The earlier manual formatting checks did not replace this complete PHPCS run.
 
+## Windows Local setup smoke check
+
+Local 10.2.0's official CLI created and started a dedicated disposable site using PHP 8.4.27. Target export through WP-CLI 2.12.0 succeeded with separate command arguments; the fully quoted command failed. A PHP capability script also ran successfully from a path containing spaces.
+
+A temporary loopback-only HTTP probe reported PHP 8.4.27, the required extensions, active OPcache shared memory, and no effective Xdebug modes. The probe was removed afterward. The dedicated site's PHP template was backed up and its OPcache increased from 128 MiB to 2 GiB, with 64 MiB of interned strings and 100,000 requested cached-file slots. HTTP verified these settings after stopping and starting only that site. Capacity still needs checking after warming the actual fixtures.
+
+The direct CLI Imagick DLL startup warning was resolved by adding Local's bundled PHP, ImageMagick, and Ghostscript directories to the benchmark process's PATH. The system PATH was not changed. CLI startup then completed cleanly with Imagick and mysqli loaded. Local's existing PCRE JIT setting remains disabled and PHP's memory limit remains 256 MiB; both conditions must be recorded for comparisons.
+
+Local's `serialize_precision=17` made JSON fingerprints differ from the other PHP runtime's default. The dedicated site now uses PHP's native `-1` default so the planned run can be verified with either available runtime. Replay on other environments must preserve the declared serialization setting too.
+
+The operator reported that OS prompts were inaccessible during computer control and dismissed the Windows Firewall prompt with Cancel. Loopback HTTP and the official CLI remained usable. First-site setup now requires a manual permission check and a handoff for later OS prompts. These setup checks are not plugin performance results; live plugin qualification, complete collection, and cleanup remain untested.
+
 ## Still required before publishing reference results
 
 1. An approved real WordPress run through Local's official CLI or an existing native stack, including the plugins' live setup APIs and cleanup.

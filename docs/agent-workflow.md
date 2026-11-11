@@ -27,10 +27,16 @@ Suggest the TSF reference recipe and explain its nine HTML routes, competitors, 
 
 Use `examples/target.native.json` as a starting point for an existing native stack. Keep the filled target, credentials, and run directory under `.local/`, outside the served site. Use absolute filesystem paths in local configuration, but keep them out of public exports.
 
-For Local, first obtain approval for any installation, CLI enablement, and creation of a dedicated shell site. Do not create a shell site simply to discover how Local works. Once that dedicated site is approved and available, its own runtime can save a private target file:
+For Local, first obtain approval for any installation, CLI enablement, and creation of a dedicated shell site. Do not create a shell site simply to discover how Local works.
+
+Before automated Local site creation, confirm that the user has manually created their first disposable site, completed OS permission prompts, and opened its homepage and WordPress admin successfully. If not, hand control back for that first-site setup and wait for confirmation before resuming. An already working Local site satisfies this check; it does not authorize using that site's content for benchmarking. If a benchmark shell site has already been created, let the user finish its permissions and opening checks rather than creating another site.
+
+Pause computer control when any UAC, firewall, or other OS permission prompt appears. Explain the prompt and let the user review it directly; Windows secure-desktop prompts can be inaccessible while the agent controls the desktop. Do not repeatedly issue site-creation or setup commands while the prompt is pending. After the user reports completion, check the existing site's status before retrying anything, and verify loopback access. Do not instruct the user to grant broad inbound network access as a prerequisite.
+
+After this manual check and approval of the dedicated target, export its configuration:
 
 ```text
-localwp cli BENCHMARK-SITE -- "eval-file /absolute/repository/scripts/local-target.php /absolute/repository/.local/target.json"
+localwp cli BENCHMARK-SITE -- eval-file /absolute/repository/scripts/local-target.php /absolute/repository/.local/target.json
 ```
 
 The destination directory must already exist outside the served site, and the destination file must be new. This helper reads the selected shell site's PHP and database configuration and saves it privately without printing credentials. Review the file before planning; downloads default to disabled.
@@ -120,9 +126,11 @@ Local 10.2+ supplies an official CLI, disabled by default. Enablement and site c
 WP-CLI can invoke a PHP entry point without bootstrapping WordPress:
 
 ```text
-localwp cli BENCHMARK-SITE -- "eval-file /absolute/path/to/benchmark.php doctor --skip-wordpress --use-include"
+localwp cli BENCHMARK-SITE -- eval-file /absolute/path/to/benchmark.php doctor --skip-wordpress --use-include
 ```
 
 Use the installed CLI's supported quoting on Windows. Test paths containing spaces. `--use-include` requires WP-CLI 2.8 or later. Do not upgrade automatically. [WP-CLI eval-file](https://developer.wordpress.org/cli/commands/eval-file/)
+
+On Local 10.2.0 for Windows, pass WP-CLI arguments separately after `--`; quoting the entire command makes WP-CLI treat it as one command name. Quote individual paths containing spaces, and verify that case on the installed shell before relying on it.
 
 The native adapter does not install a web server or database. If the existing stack cannot serve an isolated target with the required permissions, explain that and offer Local or a user-prepared target.

@@ -15,6 +15,8 @@ The engine requires 64-bit PHP 8.2+ with cURL, ZipArchive, mysqli, JSON/hash, an
 
 An ordinary PHP web server and MySQL/MariaDB are required for live experiments. PHP's development server is useful for harness smoke tests; it is not interchangeable with the reference web-server/SAPI configuration.
 
+For first-time Local setup, the user should create a disposable site manually, handle OS permission prompts, and verify that its homepage and admin open before agent automation resumes. Pause computer control for later permission prompts too: Windows UAC and firewall dialogs can be inaccessible during desktop automation. A working site does not grant permission to use its content as the benchmark target or establish outbound isolation.
+
 ## Inspect before trusting timings
 
 | Condition | How to interpret it |

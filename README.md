@@ -7,6 +7,8 @@ Help me run a trustworthy SEO plugin benchmark using this repository: https://gi
 Read the repository instructions and docs/agent-workflow.md first.
 Check which native WordPress stacks I already have. Offer Local with its
 official CLI or a suitable existing stack, and explain the proposed setup.
+If using Local, confirm I have manually created and opened my first site.
+Hand control back for OS permission prompts before continuing automation.
 Offer TSF's reference recipe and let me question or change the experiment.
 Compare TSF with Yoast SEO, Rank Math, SEOPress, Slim SEO, and AIOSEO
 both standalone and with the reference recipe's default companion bundle.
@@ -15,6 +17,19 @@ and cleanup. Wait for my approval before installing or setting anything up.
 Then run the approved experiment, check its consistency, and explain the
 results and limitations. Keep the evidence even if TSF does not win.
 ```
+
+## First time using Local?
+
+Before agent-assisted site setup:
+
+1. Open Local yourself and create a disposable WordPress site.
+2. Review and complete any OS permission prompts yourself.
+3. Open that site's homepage and WordPress admin to confirm Local works.
+4. Return to your agent and continue. Tell it explicitly if this site should be the benchmark target.
+
+**Pause computer control while handling permission prompts.** On Windows, UAC or firewall prompts can be inaccessible while an agent controls the desktop. If a prompt appears later, the agent should hand control back and wait, rather than repeatedly retry setup. Review the requested access; this benchmark needs loopback access, not public-network access.
+
+If you already have a working Local site, you do not need another first-site check. An existing site is used for benchmarking only with your explicit approval. Users of another native stack can skip this Local step.
 
 ## What happens next
 

@@ -69,7 +69,9 @@ After the user approves a dedicated Local shell site, `scripts/local-target.php`
 The benchmark engine itself can run without WordPress:
 
 ```text
-localwp cli BENCHMARK-SITE -- "eval-file /absolute/repository/benchmark.php doctor --skip-wordpress --use-include"
+localwp cli BENCHMARK-SITE -- eval-file /absolute/repository/benchmark.php doctor --skip-wordpress --use-include
 ```
 
 Alternatively, open the approved site's Local Site Shell and run `php /absolute/repository/benchmark.php doctor`. Keep commands compatible with the installed Local CLI, and do not silently enable or install a missing component.
+
+Local 10.2.0 on Windows requires separate WP-CLI arguments after `--`; do not quote the entire command as one string. Quote individual paths containing spaces and check that quoting on the installed shell. Complete the manual first-site permission check in [the agent workflow](agent-workflow.md) before automated setup.

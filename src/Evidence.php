@@ -593,6 +593,47 @@ function verify_evidence_manifest( string $directory ): array {
 }
 
 /**
+ * Validate the small public record distinguishing post-collection reanalysis.
+ *
+ * Historical summaries can contain private metadata. Only known versions,
+ * verdicts, a fixed explanation, and hexadecimal fingerprints are permitted.
+ *
+ * @param array $context Explicit analysis context, never an entire summary.
+ * @return array Validated context with only its declared public scalar fields.
+ * @throws RuntimeException When an unknown field or unsafe value is supplied.
+ */
+function validate_analysis_context( array $context ): array {
+
+	if ( [ 'retrospective' => false ] === $context ) return $context;
+	$required = [
+		'retrospective',
+		'reason',
+		'source_analysis_version',
+		'source_verdict',
+		'source_summary_sha256',
+		'source_analysis_runner_sha256',
+	];
+
+	if (
+		   true !== ( $context['retrospective'] ?? null )
+		|| 'Existing observations reanalyzed after collection; not independent confirmation.' !== ( $context['reason'] ?? null )
+		|| array_diff( $required, array_keys( $context ) )
+		|| array_diff( array_keys( $context ), array_merge( $required, [ 'source_manifest_sha256' ] ) )
+		|| ! \in_array( $context['source_analysis_version'] ?? null, [ '1.0.0', '2.0.0' ], true )
+		|| ! \in_array( $context['source_verdict'] ?? null, [ 'supported', 'not_reproduced', 'inconclusive', 'inconsistent', 'smoke_only' ], true )
+	) {
+		throw new RuntimeException( 'Unsafe or unsupported analysis context.' );
+	}
+	foreach ( [ 'source_summary_sha256', 'source_analysis_runner_sha256', 'source_manifest_sha256' ] as $key ) {
+		if ( 'source_manifest_sha256' === $key && ! \array_key_exists( $key, $context ) ) continue;
+		if ( ! \is_string( $context[ $key ] ) || ! preg_match( '/\A[a-f0-9]{64}\z/D', $context[ $key ] ) )
+			throw new RuntimeException( 'Invalid analysis context fingerprint.' );
+	}
+
+	return $context;
+}
+
+/**
  * Create a fresh public export and regenerate its reports from public inputs.
  *
  * Files are allowlisted individually. Private plans, approvals, logs, database
@@ -615,18 +656,26 @@ function export_evidence( string $run, string $destination ): array {
 		throw new RuntimeException( 'Evidence run does not exist.' );
 	$run = normalized_path( $resolved );
 
+	$source_manifest = null;
+
 	if ( null !== evidence_input( $run, 'manifest.json' ) )
-		verify_evidence_manifest( $run );
+		$source_manifest = verify_evidence_manifest( $run );
 
 	if ( file_exists( $destination ) || is_link( $destination ) )
 		throw new RuntimeException(
 			'Choose a fresh export directory.',
 		);
 	$destination = absolute_path( $destination );
-	$parent      = normalized_path( \dirname( $destination ) );
-	$temporary   = $parent . '/.tsf-export-' . bin2hex( random_bytes( 8 ) );
+	if ( str_starts_with( strtolower( $destination . '/' ), strtolower( $run . '/' ) ) )
+		throw new RuntimeException( 'Output must be outside the original evidence directory.' );
+	$parent    = normalized_path( \dirname( $destination ) );
+	$temporary = $parent . '/.tsf-export-' . bin2hex( random_bytes( 8 ) );
 	make_directory( $temporary );
-	$source_hashes   = [];
+	$source_hashes = [];
+
+	if ( null !== $source_manifest )
+		$source_hashes['manifest.json'] = $source_manifest['manifest_sha256'];
+
 	$transformations = [
 		'Environment paths and credential fields were removed.',
 		'Undeclared recipe and receipt metadata was excluded; experiment inputs are preserved.',
@@ -634,6 +683,48 @@ function export_evidence( string $run, string $destination ): array {
 		'Summary, HTML, and CSV were regenerated from the exported observations.',
 	];
 	try {
+		$summary_path = evidence_input( $run, 'summary.json' );
+		$context_path = evidence_input( $run, 'analysis-context.json' );
+		$context      = null === $context_path ? null : validate_analysis_context( read_json( $context_path ) );
+
+		if ( null !== $context_path )
+			$source_hashes['analysis-context.json'] = hash_file( 'sha256', $context_path );
+
+		if ( null !== $summary_path ) {
+			$saved = read_json( $summary_path );
+
+			if ( ! \in_array( $saved['analysis_version'] ?? null, [ '1.0.0', '2.0.0' ], true ) )
+				throw new RuntimeException( 'Unsupported saved analysis version.' );
+			$source_hashes['summary.json'] = hash_file( 'sha256', $summary_path );
+
+			$report_path = evidence_input( $run, 'report.html' );
+
+			if ( null !== $report_path )
+				$source_hashes['report.html'] = hash_file( 'sha256', $report_path );
+
+			if ( '2.0.0' === ( $saved['analysis_version'] ?? null ) ) {
+				$saved_context = validate_analysis_context( $saved['analysis_context'] ?? [ 'retrospective' => false ] );
+				if ( null !== $context && digest( $context ) !== digest( $saved_context ) )
+					throw new RuntimeException( 'Saved analysis context differs from its input record.' );
+				$context = $saved_context;
+			} else {
+				$context = [
+					'retrospective'                 => true,
+					'reason'                        => 'Existing observations reanalyzed after collection; not independent confirmation.',
+					'source_analysis_version'       => $saved['analysis_version'] ?? null,
+					'source_verdict'                => $saved['verdict'] ?? null,
+					'source_summary_sha256'         => $source_hashes['summary.json'],
+					'source_analysis_runner_sha256' => $saved['provenance']['analysis_runner_sha256'] ?? null,
+				];
+
+				if ( null !== $source_manifest )
+					$context['source_manifest_sha256'] = $source_manifest['manifest_sha256'];
+			}
+		}
+		$context = validate_analysis_context( $context ?? [ 'retrospective' => false ] );
+		write_json( $temporary . '/analysis-context.json', $context );
+		$transformations[] = 'Analysis context preserves allowlisted historical verdict and source fingerprints; no private summary metadata is copied.';
+
 		$recipe_path = evidence_input( $run, 'recipe.json' );
 
 		if ( null === $recipe_path )
@@ -858,6 +949,15 @@ function export_evidence( string $run, string $destination ): array {
 			$temporary . '/manifest.json',
 			$manifest,
 		);
+
+		if ( null !== $source_manifest && verify_evidence_manifest( $run ) !== $source_manifest )
+			throw new RuntimeException( 'Original public evidence changed during export.' );
+
+		foreach ( $source_hashes as $name => $hash ) {
+			$input = evidence_input( $run, $name );
+			if ( null === $input || ! hash_equals( $hash, hash_file( 'sha256', $input ) ) )
+				throw new RuntimeException( 'Source evidence changed during export: ' . $name );
+		}
 
 		if (
 			   file_exists( $destination )

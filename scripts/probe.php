@@ -130,11 +130,12 @@ try {
 				: ( $xdebug_loaded ? null : [] );
 
 			$data = [
-				'php_version'     => PHP_VERSION,
-				'sapi'            => PHP_SAPI,
-				'extensions'      => get_loaded_extensions(),
-				'wordpress_debug' => $debug,
-				'php_diagnostics' => [
+				'php_version'           => PHP_VERSION,
+				'sapi'                  => PHP_SAPI,
+				'extensions'            => get_loaded_extensions(),
+				'wordpress_debug'       => $debug,
+				'wordpress_environment' => wp_get_environment_type(),
+				'php_diagnostics'       => [
 					'log_errors'      => filter_var(
 						ini_get( 'log_errors' ),
 						FILTER_VALIDATE_BOOLEAN,
@@ -148,29 +149,29 @@ try {
 					),
 					'error_reporting' => error_reporting(),
 				],
-				'xdebug'          => [
+				'xdebug'                => [
 					'loaded'          => $xdebug_loaded,
 					'effective_modes' => $xdebug_modes,
 					'ini_mode'        => ini_get( 'xdebug.mode' ),
 					'env_mode'        => getenv( 'XDEBUG_MODE' ) ?: null,
 				],
-				'opcache'         => [
+				'opcache'               => [
 					'ini'    => $ini,
 					'status' => function_exists( 'opcache_get_status' )
 						? opcache_get_status( false )
 						: false,
 				],
-				'wordpress'       => $GLOBALS['wp_version'],
-				'database'        => $GLOBALS['wpdb']->db_version(),
-				'server'          => $_SERVER['SERVER_SOFTWARE'] ?? null,
-				'theme'           => [
+				'wordpress'             => $GLOBALS['wp_version'],
+				'database'              => $GLOBALS['wpdb']->db_version(),
+				'server'                => $_SERVER['SERVER_SOFTWARE'] ?? null,
+				'theme'                 => [
 					'slug'    => get_stylesheet(),
 					'version' => wp_get_theme()->get( 'Version' ),
 				],
-				'active_plugins'  => get_option( 'active_plugins' ),
-				'object_cache'    => wp_using_ext_object_cache(),
-				'page_cache'      => defined( 'WP_CACHE' ) && WP_CACHE,
-				'fixture'         => get_option( 'tsfb_fixture' ),
+				'active_plugins'        => get_option( 'active_plugins' ),
+				'object_cache'          => wp_using_ext_object_cache(),
+				'page_cache'            => defined( 'WP_CACHE' ) && WP_CACHE,
+				'fixture'               => get_option( 'tsfb_fixture' ),
 			];
 			break;
 

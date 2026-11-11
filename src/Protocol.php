@@ -467,7 +467,7 @@ function next_random( int &$state, int $maximum ): int {
  * @param array $environment Recorded limitations and blocking conditions.
  * @return array Deterministic report data, without generation timestamps.
  */
-function analyze( array $recipe, array $samples, array $environment = [] ): array {
+function analyze_legacy( array $recipe, array $samples, array $environment = [] ): array {
 
 	validate_recipe( $recipe );
 	$arm_ids     = array_column( $recipe['arms'], 'id' );
@@ -742,6 +742,22 @@ function analyze( array $recipe, array $samples, array $environment = [] ): arra
 	$result['verdict'] = $smoke ? 'smoke_only' : ( 1 === \count( array_unique( $verdicts ) ) ? $verdicts[0] : 'inconsistent' );
 
 	return $result;
+}
+
+/**
+ * Analyze observations using the current paired-block policy.
+ *
+ * Historical version 1.0.0 replay explicitly calls analyze_legacy().
+ *
+ * @param array $recipe      Declared experiment definition.
+ * @param array $samples     All original observations, including warmups.
+ * @param array $environment Recorded limitations and blocking conditions.
+ * @return array Versioned paired effects and conditional uncertainty.
+ */
+function analyze( array $recipe, array $samples, array $environment = [] ): array {
+	// Keep Protocol.php usable by offline consumers without the CLI entry point.
+	require_once __DIR__ . '/Paired.php';
+	return analyze_paired( $recipe, $samples, $environment );
 }
 
 /**

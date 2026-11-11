@@ -182,6 +182,14 @@ function assess_runtime( array $runtime ): array {
 			'The HTTP PHP version was not recorded.',
 		);
 
+	if ( 'production' !== ( $runtime['wordpress_environment'] ?? null ) ) {
+		$add(
+			'wordpress_environment_not_production',
+			'reference',
+			'The reference requires verified production WordPress behavior; non-production environments can disable plugin indexing and caching.',
+		);
+	}
+
 	$debug      = $runtime['wordpress_debug'] ?? [];
 	$unverified = [];
 

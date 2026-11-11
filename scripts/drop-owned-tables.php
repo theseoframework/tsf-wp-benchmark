@@ -92,7 +92,7 @@ try {
 		if ( false === $mysqli->query( "DROP TABLE `$table`" ) )
 			throw new RuntimeException( 'Cannot remove an owned table.' );
 
-		$removed[] = substr( $table, strlen( $prefix ) );
+		$removed[] = $table;
 	}
 
 	$tables = $mysqli->query( 'SHOW TABLES' );

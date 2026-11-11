@@ -30,20 +30,37 @@ Nine arms use eighteen balanced request orders. Each arm appears equally often a
 
 Do not treat every serial request as an independent experiment. Preserve blocks and shared controls in uncertainty analysis. Extra samples do not repair broken controls, biased fixtures, changing settings, or missing features.
 
-## Added-time ratio
+## Paired comparisons: the default analysis
 
-For each route:
+The default is `analysis_version=2.0.0`, method `paired-block-1`. It was deliberately adopted after the exploratory review of the completed Windows collection. Historical version 1.0.0 reports retain their original method and verdict when verified; adopting a new method does not rewrite that evidence.
+
+For each pass, route, and balanced schedule block, take each configuration's median measured request time and the pooled median of the two matched WordPress-only controls. Write T for the comparison anchor's median, C for a comparator's median, and B for the pooled control median:
 
 ```text
-core median = median of the two matched WordPress-only controls
-estimated added time = plugin median HTTP time - core median
-route ratio = competitor estimated added time / TSF estimated added time
-reference score = arithmetic mean of the nine route ratios
+A = average(T - B)                                      estimated anchor addition
+G = average(C - T)                                      direct anchor advantage
+H = average((C - B) - threshold * (T - B))              threshold margin
 ```
 
-A 1.5x score concerns estimated plugin-added response time under those conditions. It does not mean the whole WordPress page loads 1.5x faster. Baseline subtraction is also not a measurement of exclusive plugin CPU self-time.
+Average the cells with equal block, route, and pass weights. Keep every observed cell, including negative additions. The reference anchor is TSF and its threshold is 1.5. G, with its simultaneous confidence interval, is the primary comparison; it cancels the shared control entirely. H evaluates the declared threshold without dividing by a noisy addition. Show absolute response milliseconds, estimated added milliseconds, whole-response ratios, control disagreement, dependence, and influence alongside these comparisons.
 
-Show absolute response milliseconds, estimated added milliseconds, and whole-response ratios alongside this score. Ratios with a denominator near control noise cannot establish a precise speed claim. An unresolved route makes the complete-cohort claim inconclusive; it is not silently omitted.
+The ratio of average comparator and anchor additions is descriptive. It differs from version 1.0.0's average of per-route ratios, where a tiny route denominator can dominate the score. Neither quantity measures exclusive plugin CPU self-time or a multiplier on whole-page loading speed.
+
+### Uncertainty, verdicts, and scope
+
+The primary analysis uses deterministic circular-block bootstrap resampling with segment length three, preserving configurations and controls together and keeping the observed passes fixed. Equal schedule row numbers in sequential routes are not simultaneous temporal clusters. Report all five analyses: this primary method, independent blocks (length one), length six, common schedule indices across routes, and hierarchical pass resampling. No sensitivity is selected because it is favorable.
+
+Reference-sized analysis uses at least 50,000 draws; smoke analysis retains the recipe's configured draw count. The recipe's confidence level determines the two-sided Bonferroni percentile intervals. The reference aggregate family contains 13 quantities: one A, six G, and six H. Each sensitivity has its own nominal simultaneous family; there is no joint coverage claim over the choice of analysis. These are approximate intervals conditional on the observed session. Eighteen blocks per route/pass limit dependence estimation, and the hierarchical sensitivity has only three passes to resample. It cannot establish calibrated uncertainty for future sessions, machines, or workloads.
+
+Reference-sized threshold support requires positive simultaneous lower bounds for A and H across all five analyses, plus positive diagnostic lower bounds at the recipe's confidence level (95% for the reference recipe) for A and H in every pass. Opposing statistical decisions between passes are inconsistent; an unresolved pass makes that comparator inconclusive. Direct G intervals remain available independently of threshold qualification. Interpret a supported threshold verdict only as conditional evidence for this observed session. An uncertain comparator does not veto another comparator's result. A claim covering all comparators requires support for every declared comparator. The 10- and 40-iteration choices remain smoke-only; the 100-iteration choice is reference-sized, not automatically accurate.
+
+Incomplete observations, invalid responses, changing selected output, missing required features, broken isolation, blocking environment conditions, and unverified cleanup remain hard failures. Control disagreement, individual negative additions, timing drift, and influence remain visible diagnostics and uncertainty inputs. They no longer trigger version 1.0.0's global worst-block or all-positive-block timing vetoes. Stable output fingerprints do not guarantee stable timing.
+
+### Historical version 1.0.0 analysis
+
+The original method computed each route's plugin median minus its pooled WordPress-only median, divided the comparator addition by the anchor addition, then averaged the route ratios. Before bootstrapping, it required route additions above the largest same-block control disagreement and positive additions in every block. Those extreme-value gates could let one unusual block veto a comparison; they were neither confidence intervals nor calibrated tests of an overall effect.
+
+For example, the first Windows pass's blog homepage had a WordPress-only median of **163.858 ms** and TSF median of **169.877 ms**, an estimated addition of **6.020 ms**. The largest control disagreement was **24.234 ms**, and two blocks had negative additions. All 27 TSF route/pass estimates were positive, but all failed the old control-variation guard; 26 also failed the old all-positive-block guard. The original complete-cohort verdict remains **inconclusive** under that version. Removing the gates alone does not solve unstable ratio denominators, as the [statistical review](statistical-review.md) shows.
 
 The earlier archived 1.52x comparison with Slim SEO used **TSF 5.2.0**. It is not a matched result for TSF 5.2.1. A new reference result requires fresh matched collection with the released 5.2.1 package and all declared competitors.
 
@@ -63,3 +80,9 @@ Users may change versions, themes, content, route weights, plugin settings, cach
 A custom experiment is not automatically less legitimate. Evaluate its controls, scope, evidence, and repeatability. A later alternative analysis should have its own identity and preserve the original result.
 
 The report must allow **supported in this run**, **inconclusive**, and **not reproduced** outcomes. No expected winner is an acceptance test for the runner.
+
+## Adoption and retrospective evidence
+
+The [statistical review](statistical-review.md) motivated the approved, versioned default change. Reanalysis of those existing Windows observations remains retrospective and exploratory because the method was chosen after inspecting them. It is not independent confirmation, even when every sensitivity and pass check supports a conditional comparison. The pervasive alternating timing pattern remains unexplained.
+
+Use `php benchmark.php report --run OLD --out NEW` to create the current analysis in a fresh evidence directory. Preserve the original summary, rendered report, observations, export, and verdict. The schema 2 root summary's `analysis_context` records the source analysis version and verdict, source summary and public-manifest hashes, retrospective status, and current default version; collection and analysis source fingerprints remain distinct. `verify` dispatches by the saved analysis version, so historical version 1.0.0 evidence still replays its historical method and provenance, with the current replay fingerprint recorded separately.

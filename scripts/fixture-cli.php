@@ -59,7 +59,9 @@ try {
 	}
 
 	define( 'WP_ADMIN', true );
-	define( 'DOING_AJAX', true );
+	// AIOSEO skips its setup REST API during AJAX bootstrap.
+	define( 'DOING_AJAX', 'configure' !== $config['action'] );
+	if ( 'configure' === $config['action'] ) define( 'REST_REQUEST', true );
 
 	$_SERVER['HTTP_HOST']       = $url['host'] . ( isset( $url['port'] ) ? ':' . $url['port'] : '' );
 	$_SERVER['SERVER_NAME']     = $url['host'];

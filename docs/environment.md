@@ -17,7 +17,20 @@ An ordinary PHP web server and MySQL/MariaDB are required for live experiments. 
 
 For first-time Local setup, the user should create a disposable site manually, handle OS permission prompts, and verify that its homepage and admin open before agent automation resumes. Pause computer control for later permission prompts too: Windows UAC and firewall dialogs can be inaccessible during desktop automation. A working site does not grant permission to use its content as the benchmark target or establish outbound isolation.
 
+The optional [Windows worker supervisor](cli.md#owned-windows-worker-supervisor) reuses installed nginx/PHP binaries while owning its server processes and private ports. It preserves normal 500-request CGI recycling and requires a real WordPress preflight before collection. It adds a worker manager and HTTP process, whose resource cost must be recorded; it does not make every machine equally fast or qualify the host merely by starting successfully. Local's original idle services remain part of the baseline. No Local files are patched.
+
 ## Inspect before trusting timings
+
+### Local installer sources
+
+Prefer an existing suitable Local installation. When installation is approved, the agent can use public package catalogs as discovery metadata:
+
+- Windows: [Microsoft's WinGet Local manifests](https://github.com/microsoft/winget-pkgs/tree/master/manifests/f/Flywheel/Local) declare installer versions, official CDN URLs, and SHA-256 hashes.
+- macOS: [Homebrew's Local cask](https://github.com/Homebrew/homebrew-cask/blob/main/Casks/l/local.rb) declares Apple Silicon and Intel URLs and hashes; its [JSON API](https://formulae.brew.sh/api/cask/local.json) also exposes platform variations. Select the actual architecture rather than assuming the API's default URL matches the machine.
+
+These community-maintained catalogs are not a Local release API or an endorsement of this benchmark. Read their metadata without installing WinGet or Homebrew. Fetch installers only from `https://cdn.localwp.com/`, verify the declared SHA-256 and platform signing identity before execution, and record the exact version, build, architecture, URL, hash, and metadata source. Respect Local's installation terms. Do not invent build numbers, execute package-manager scripts, or substitute a mirror. If metadata is unavailable or outdated, fall back to [Local's releases page](https://localwp.com/releases/). Downloads and installation still require explicit approval.
+
+### Runtime qualification
 
 | Condition | How to interpret it |
 | --- | --- |
@@ -35,6 +48,8 @@ For first-time Local setup, the user should create a disposable site manually, h
 `XDEBUG_MODE` can override the configured `xdebug.mode` value without changing that value. Check effective modes, not only the INI file. [Xdebug documentation](https://xdebug.org/docs/upgrade_guide)
 
 The generated reference fixtures use `WP_DEBUG=false`, `WP_DEBUG_LOG=false`, `WP_DEBUG_DISPLAY=false`, `SCRIPT_DEBUG=false`, and no `SAVEQUERIES` recording. Probe these flags in the actual HTTP request. The receipt records the debug-log setting as a Boolean, never its private file path. Ordinary PHP error logging remains enabled to a private run log; record its enabled state and error-reporting mask separately from WordPress debugging. [WordPress debugging documentation](https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/)
+
+Isolated fixtures use `WP_ENVIRONMENT_TYPE=production` to preserve ordinary plugin behavior. For example, Yoast disables saving indexables in a `local` environment. This setting does not expose the fixture publicly: loopback-only serving, secret request headers, disabled updates/cron, and approved outbound isolation remain independent controls. The HTTP runtime receipt must verify the effective environment.
 
 `opcache.file_cache` enables a second-level disk cache. `opcache.file_cache_only` disables shared-memory caching; Windows fallback can also put a worker into that state. `opcache_get_status()` describes the in-memory cache. [OPcache configuration](https://www.php.net/manual/en/opcache.configuration.php), [runtime status](https://www.php.net/manual/en/function.opcache-get-status.php)
 

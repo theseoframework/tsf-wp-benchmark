@@ -161,6 +161,9 @@ function render_environment( array $environment ): string {
  */
 function render_report( array $analysis ): string {
 
+	if ( '2.0.0' === $analysis['analysis_version'] )
+		return render_paired_report( $analysis );
+
 	$escape = __NAMESPACE__ . '\\report_escape';
 	$names  = array_column(
 		$analysis['arms'],

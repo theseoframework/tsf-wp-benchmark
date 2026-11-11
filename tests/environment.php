@@ -32,18 +32,19 @@ require_once dirname( __DIR__ ) . '/src/Telemetry.php';
  */
 function healthy_environment_fixture(): array {
 	return [
-		'php_version'     => '8.4.27',
-		'sapi'            => 'fpm-fcgi',
-		'extensions'      => [],
-		'wordpress_debug' => [
+		'php_version'           => '8.4.27',
+		'sapi'                  => 'fpm-fcgi',
+		'extensions'            => [],
+		'wordpress_environment' => 'production',
+		'wordpress_debug'       => [
 			'WP_DEBUG'         => false,
 			'WP_DEBUG_DISPLAY' => false,
 			'WP_DEBUG_LOG'     => false,
 			'SCRIPT_DEBUG'     => false,
 			'SAVEQUERIES'      => false,
 		],
-		'xdebug'          => [ 'loaded' => false ],
-		'opcache'         => [
+		'xdebug'                => [ 'loaded' => false ],
+		'opcache'               => [
 			'ini'    => [
 				'opcache.file_cache'      => '',
 				'opcache.file_cache_only' => '0',
@@ -98,6 +99,22 @@ function environment_metric( mixed $value, string $unit = 'percent', string $sta
 }
 
 return [
+	/**
+	 * Checks local and missing environment evidence cannot qualify as production.
+	 *
+	 * @return void
+	 */
+	'environment: production behavior must be verified'    => function (): void {
+
+		foreach ( [ 'local', 'development', 'staging', null ] as $environment ) {
+			$runtime                          = healthy_environment_fixture();
+			$runtime['wordpress_environment'] = $environment;
+			expect(
+				has_environment_condition( assess_runtime( $runtime ), 'wordpress_environment_not_production' ),
+				'Non-production or unknown behavior must not qualify.',
+			);
+		}
+	},
 	/**
 	 * Checks healthy HTTP runtime qualifies.
 	 *

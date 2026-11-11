@@ -34,6 +34,6 @@ This ledger distinguishes confirmed runner fixes from live benchmark validation.
 
 The test harness treats unsuppressed PHP warnings and notices as failures and loads shared test helpers before executing cases. Review-time checks also include PHP lint and the repository's formatting checks; these are separate from behavioral evidence.
 
-Setup API inspection uses pinned cached PHP source. It supplements the stub tests; it does not prove that a complete live plugin activation and setup succeeds. The generated source, package identities, output qualification, and all timing passes still need an approved native integration run.
+Setup API inspection uses pinned cached PHP source. It supplements the stub tests; inspection alone does not prove that live activation and setup succeed. The subsequent [Windows native integration](validation.md#complete-windows-reference-collection) completed every declared setup, validated generated source and package identities, qualified all routes, collected all three passes, and verified cleanup and replay. The [integration bugfix ledger](bugfixes.md) records defects the live tests exposed. macOS collection remains unverified.
 
 The instructions keep reference timing separate from profiling, retain unfavorable results, label unavailable sensors, and reject unsupported non-HTML cohorts. No benchmark winner is a correctness requirement.

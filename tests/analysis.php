@@ -410,6 +410,7 @@ return [
 		}
 	},
 	'control noise and negative denominators remain unresolved' => function (): void {
+		// Preserve the historical version 1 timing-gate contract.
 		$recipe = analysis_recipe();
 		foreach ( [ 1.1, 2.5 ] as $control_shift ) {
 			$rows                       = analysis_samples( $recipe );
@@ -417,7 +418,7 @@ return [
 				if ( 'core-b' === $row['arm'] )
 					$row['elapsed_ms'] += $control_shift;
 			unset( $row );
-			$result = TsfBenchmark\analyze( $recipe, $rows );
+			$result = TsfBenchmark\analyze_legacy( $recipe, $rows );
 			analysis_expect(
 				'inconclusive' === $result['verdict'],
 				'Noisy baseline was treated as a claim.',

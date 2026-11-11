@@ -155,6 +155,38 @@ function setup_cleanup_fixture(): array {
 
 return [
 	/**
+	 * Verifies setup APIs bootstrap as REST rather than an AJAX request.
+	 *
+	 * @return void
+	 */
+	'fixture configure loads native REST services without AJAX suppression' => function (): void {
+
+		$directory = setup_script_directory();
+		try {
+			file_put_contents( "$directory/wp-load.php", setup_script_fixture( 'context-bootstrap.php' ) );
+			foreach ( [ 'install', 'activate', 'configure' ] as $action ) {
+				$config = [
+					'action' => $action,
+					'url'    => 'http://127.0.0.1/fixture',
+					'root'   => $directory,
+					'result' => "$directory/result-$action.json",
+					'recipe' => [ 'fixtures' => benchmark_fixture_declaration() ],
+				];
+				TsfBenchmark\write_json( "$directory/config.json", $config );
+				$result = TsfBenchmark\execute( [ PHP_BINARY, dirname( __DIR__ ) . '/scripts/fixture-cli.php', "$directory/config.json" ] );
+				expect( 0 === $result['exit'] && '' === $result['stderr'] );
+				$flags = json_decode( $result['stdout'], true, 16, JSON_THROW_ON_ERROR );
+				expect( [
+					'admin' => true,
+					'ajax'  => 'configure' !== $action,
+					'rest'  => 'configure' === $action,
+				] === $flags );
+			}
+		} finally {
+			TsfBenchmark\remove_owned_tree( $directory, dirname( $directory ) );
+		}
+	},
+	/**
 	 * Requires database cleanup proof before deleting recoverable fixture files.
 	 *
 	 * @return void
@@ -518,6 +550,11 @@ return [
 				expect(
 					0 === $process['exit'],
 					"Cleanup must support the declared database host: $host",
+				);
+				$cleanup_receipt = json_decode( $process['stdout'], true, 512, JSON_THROW_ON_ERROR );
+				expect(
+					[ $config['prefix'] . 'posts' ] === $cleanup_receipt['removed'],
+					'Cleanup must return full table names so the caller can verify their ownership.',
 				);
 				$state = json_decode(
 					file_get_contents( "$directory/state.json" ),

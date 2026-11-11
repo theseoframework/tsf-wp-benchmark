@@ -41,6 +41,7 @@ function create_plan( array $recipe, array $target, string $output ): array {
 	}
 
 	validate_recipe( $recipe );
+	$target = normalize_worker_supervisor( $target );
 	validate_target( $target );
 	validate_fixture_recipe( $recipe['fixtures'] ?? [] );
 
@@ -71,7 +72,7 @@ function create_plan( array $recipe, array $target, string $output ): array {
 			$target[ $path_key ] = absolute_path( $target[ $path_key ] );
 	}
 
-	$plan = [
+	$plan                        = [
 		'schema'        => 1,
 		'id'            => $id,
 		'namespace'     => "tsfb$id",
@@ -87,6 +88,9 @@ function create_plan( array $recipe, array $target, string $output ): array {
 		],
 		'network'       => 'Operator-approved enforced isolation is required before any competitor activation.',
 	];
+	if ( isset( $target['worker_supervisor'] ) )
+		$plan['consent_scope'][] = 'owned_native_supervisor_and_wordpress_preflight';
+
 	write_json( "$output/plan.json", $plan );
 	write_json( "$output/recipe.json", $recipe );
 	write_json(
@@ -420,6 +424,29 @@ function qualify_response( array $response, array $route, array $site ): array {
 }
 
 /**
+ * Identifies PHP diagnostics without confusing application error_log() messages.
+ *
+ * Preserve the complete private log and its digest. Plugin setup/account messages
+ * remain visible limitations; native warnings, notices, deprecations and errors
+ * still stop collection. No messages are deleted or logging settings changed.
+ *
+ * @param string $path Private fixture error log.
+ * @return array Byte length, digest, and whether native PHP diagnostics matched.
+ * @throws RuntimeException When an existing private log cannot be read.
+ */
+function inspect_fixture_diagnostics( string $path ): array {
+
+	$bytes = is_file( $path ) ? file_get_contents( $path ) : '';
+	if ( false === $bytes ) throw new RuntimeException( 'Cannot inspect the private PHP log.' );
+
+	return [
+		'bytes'           => \strlen( $bytes ),
+		'sha256'          => hash( 'sha256', $bytes ),
+		'php_diagnostics' => (bool) preg_match( '/^(?:\[[^\r\n]*\]\s*)?(?:PHP\s+)?(?:Warning|Notice|Deprecated|Fatal error|Parse error|Recoverable fatal error|Strict Standards):/im', $bytes ),
+	];
+}
+
+/**
  * Collects the complete approved workload without selective retries or trimming.
  *
  * Each pass uses fresh fixtures. Runtime, output, source, diagnostics, and host
@@ -436,6 +463,11 @@ function collect_run( string $run ): array {
 	$plan   = approved_plan( $run );
 	$recipe = $plan['recipe'];
 	$target = $plan['target'];
+	if ( isset( $target['worker_supervisor'] ) ) {
+		$preflight = read_json( "$run/preflight.json" );
+		if ( empty( $preflight['passed'] ) || digest( $plan ) !== $preflight['plan_sha256'] )
+			throw new RuntimeException( 'The exact supervised target must pass its WordPress preflight.' );
+	}
 
 	if ( 'prepared' !== read_json( "$run/state.json" )['phase'] )
 		throw new RuntimeException(
@@ -492,8 +524,18 @@ function collect_run( string $run ): array {
 	$orders    = balanced_orders( array_column( $recipe['arms'], 'id' ) );
 	$handles   = [];
 	$telemetry = null;
+	$server    = null;
 
 	try {
+		$server                               = start_worker_supervisor( $target, $run );
+		if ( null !== $server )
+			$environment['worker_supervisor'] = [
+				'mode'             => 'owned-nginx-and-native-cgi',
+				'workers'          => $target['worker_supervisor']['workers'],
+				'recycle_requests' => 500,
+				'preflight'        => $preflight,
+			];
+
 		for ( $pass = 1; $pass <= $recipe['measurement']['passes']; ++$pass ) {
 			$sites             = [];
 			$sources           = [];
@@ -555,6 +597,10 @@ function collect_run( string $run ): array {
 				// Preserve a rejected worker's observed settings for the failure report.
 				$environment['runtime'][ $site['id'] ] = $runtime;
 				$assessment                            = assert_runtime( $runtime, $site, $recipe );
+				$diagnostics                           = inspect_fixture_diagnostics( "$run/diagnostics-{$site['id']}.log" );
+				write_json( "$run/diagnostics-before-{$site['id']}.json", $diagnostics );
+				if ( $diagnostics['php_diagnostics'] )
+					throw new RuntimeException( 'PHP diagnostics were recorded during setup; inspect the private log.' );
 
 				if (
 					   isset( $recipe['environment']['reference_php'] )
@@ -678,6 +724,11 @@ function collect_run( string $run ): array {
 								}
 
 								if ( ! $check['valid'] ) {
+									write_json( "$run/failed-response.private.json",
+										[
+											'observation' => $row,
+											'response'    => $response,
+										] );
 									throw new RuntimeException(
 										"Output validation failed: $id/{$route['id']}: "
 											. implode( ', ', $check['reasons'] ),
@@ -780,12 +831,19 @@ function collect_run( string $run ): array {
 						'Fixture source changed during collection.',
 					);
 
-				$log = "$run/diagnostics-{$site['id']}.log";
+				$diagnostics = inspect_fixture_diagnostics( "$run/diagnostics-{$site['id']}.log" );
+				write_json( "$run/diagnostics-after-{$site['id']}.json", $diagnostics );
+				if ( $diagnostics['php_diagnostics'] )
+					throw new RuntimeException( 'PHP diagnostics were recorded; inspect the private log.' );
 
-				if ( is_file( $log ) && 0 < filesize( $log ) )
-					throw new RuntimeException(
-						'PHP diagnostics were recorded; inspect the private log.',
-					);
+				if ( $diagnostics['bytes'] ) {
+					$environment['conditions'][] = [
+						'scope'    => $site['id'],
+						'severity' => 'limitation',
+						'code'     => 'plugin_log_messages',
+						'message'  => 'Plugin messages were retained in the private error log for review, including setup or account-dependent limitations; no native PHP diagnostic matched.',
+					];
+				}
 
 				curl_close( $handles[ $id ] );
 				unset( $handles[ $id ] );
@@ -811,6 +869,8 @@ function collect_run( string $run ): array {
 
 		foreach ( $handles as $handle )
 			curl_close( $handle );
+		if ( null !== $server )
+			$environment['worker_supervisor']['cleanup'] = stop_worker_supervisor( $server );
 
 		fclose( $stream );
 		write_json(
@@ -864,6 +924,20 @@ function read_samples( string $path ): array {
  */
 function report_run( string $run, bool $verify = false ): array {
 
+	$existing = is_file( "$run/summary.json" ) ? read_json( "$run/summary.json" ) : null;
+	$version  = null === $existing ? '2.0.0' : ( $existing['analysis_version'] ?? null );
+
+	if ( ! \in_array( $version, [ '1.0.0', '2.0.0' ], true ) )
+		throw new RuntimeException( 'Unsupported saved analysis version.' );
+
+	if ( ! $verify && null !== $existing && '2.0.0' !== $version )
+		throw new RuntimeException(
+			'Existing analysis differs. Preserve it; use report --run SOURCE --out NEW_DIRECTORY for another analysis.',
+		);
+
+	if ( $verify && null === $existing )
+		throw new RuntimeException( 'A saved summary is required for verification.' );
+
 	$recipe = read_json( "$run/recipe.json" );
 	verify_private_recipe( $run, $recipe );
 	$samples     = read_samples( "$run/samples.ndjson" );
@@ -882,25 +956,43 @@ function report_run( string $run, bool $verify = false ): array {
 		$environment['blockers'][] = 'Owned-resource cleanup has not been verified.';
 	}
 
-	$analysis               = analyze(
-		$recipe,
-		$samples,
-		$environment,
-	);
+	$analysis = '1.0.0' === $version
+		? analyze_legacy( $recipe, $samples, $environment )
+		: analyze( $recipe, $samples, $environment );
+
+	if ( '2.0.0' === $version ) {
+		$context_path                 = evidence_input( $run, 'analysis-context.json' );
+		$analysis['analysis_context'] = validate_analysis_context(
+			null === $context_path ? [ 'retrospective' => false ] : read_json( $context_path ),
+		);
+	}
+	$collection_path   = evidence_input( $run, 'runner.json' );
+	$collection_runner = null;
+
+	if ( null !== $collection_path ) {
+		$collection = read_json( $collection_path );
+		validate_public_receipt( 'runner.json', $collection );
+		$collection_runner = digest( $collection['files'] );
+	}
+	$current_runner         = runner_manifest()['sha256'];
 	$analysis['provenance'] = [
 		'recipe_sha256'            => digest( $recipe ),
 		'samples_sha256'           => hash_file(
 			'sha256',
 			"$run/samples.ndjson",
 		),
-		'collection_runner_sha256' => is_file( "$run/runner.json" )
-			? ( read_json( "$run/runner.json" )['sha256'] ?? null )
-			: null,
-		'analysis_runner_sha256'   => runner_manifest()['sha256'],
+		'collection_runner_sha256' => $collection_runner,
+		'analysis_runner_sha256'   => $current_runner,
 	];
 
 	if ( $verify ) {
-		$existing = read_json( "$run/summary.json" );
+		$historical_runner = $existing['provenance']['analysis_runner_sha256'] ?? null;
+
+		if ( ! \is_string( $historical_runner ) || ! preg_match( '/\A[a-f0-9]{64}\z/D', $historical_runner ) )
+			throw new RuntimeException( 'Saved analysis runner provenance is invalid.' );
+
+		// Replay can establish the saved numbers, but cannot recreate the old source tree.
+		$analysis['provenance']['analysis_runner_sha256'] = $historical_runner;
 
 		if ( digest( $existing ) !== digest( $analysis ) )
 			throw new RuntimeException(
@@ -911,14 +1003,17 @@ function report_run( string $run, bool $verify = false ): array {
 			throw new RuntimeException( 'Rendered report differs.' );
 
 		return [
-			'verified'       => true,
-			'summary_sha256' => digest( $analysis ),
+			'verified'                          => true,
+			'summary_sha256'                    => digest( $analysis ),
+			'historical_analysis_runner_sha256' => $historical_runner,
+			'replay_runner_sha256'              => $current_runner,
+			'analysis_runner_matches'           => hash_equals( $historical_runner, $current_runner ),
 		];
 	}
 
 	if (
-		   is_file( "$run/summary.json" )
-		&& digest( read_json( "$run/summary.json" ) ) !== digest( $analysis )
+		   null !== $existing
+		&& digest( $existing ) !== digest( $analysis )
 	) {
 		throw new RuntimeException(
 			'Existing analysis differs. Preserve it; use report --run SOURCE --out NEW_DIRECTORY for another analysis.',

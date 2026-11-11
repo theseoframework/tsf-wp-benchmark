@@ -9,6 +9,68 @@
 
 return [
 	/**
+	 * Checks the published budgets map to valid balanced recipes and real counts.
+	 *
+	 * @return void
+	 */
+	'workload budgets preserve balanced rounding and distinguish smoke evidence' => function (): void {
+
+		$root = dirname( __DIR__ );
+		$base = TsfBenchmark\read_json( "$root/recipes/tsf-5.2.1.json" );
+		$text = file_get_contents( "$root/docs/run-budget.md" );
+		foreach ( [ [ 10, 1, 1, 1, 18, 2916 ], [ 40, 2, 3, 3, 54, 17496 ], [ 100, 3, 3, 6, 108, 39366 ] ] as $choice ) {
+			[ $target, $passes, $warmups, $samples, $actual, $expected ] = $choice;
+			$recipe                           = $base;
+			$recipe['reference']              = false;
+			$recipe['measurement']['passes']  = $passes;
+			$recipe['measurement']['warmups'] = $warmups;
+			$recipe['measurement']['samples'] = $samples;
+			TsfBenchmark\validate_recipe( $recipe );
+			$orders = count( TsfBenchmark\balanced_orders( array_column( $recipe['arms'], 'id' ) ) );
+			expect( $orders * $samples === $actual && $actual >= $target );
+			expect( $passes * count( $recipe['routes'] ) * count( $recipe['arms'] ) * $orders * ( $warmups + $samples ) === $expected );
+			expect( str_contains( $text, number_format( $expected ) ) );
+		}
+		expect( str_contains( $text, 'No iteration count guarantees accuracy.' ) );
+		expect( str_contains( $text, 'All currently implemented workloads are frontend HTML.' ) );
+	},
+	/**
+	 * Checks the public usage snapshot neither double-counts subsets nor leaks IDs.
+	 *
+	 * @return void
+	 */
+	'agent usage aggregates keep cache and reasoning within their parent totals' => function (): void {
+
+		$root   = dirname( __DIR__ );
+		$record = TsfBenchmark\read_json( "$root/docs/agent-usage-2026-11-11.json" );
+		foreach ( $record['scopes'] as $scope ) {
+			$usage = $scope['usage'];
+			expect( $usage['input_tokens'] + $usage['output_tokens'] === $usage['total_tokens'] );
+			expect( $scope['uncached_input_tokens'] + $usage['cached_input_tokens'] + $usage['cache_write_input_tokens'] === $usage['input_tokens'] );
+			expect( $usage['reasoning_output_tokens'] <= $usage['output_tokens'] );
+			expect( $scope['start'] < $scope['end_exclusive'] );
+			foreach ( $scope['pricing_band_token_totals'] as $bands ) {
+				foreach ( [ 'input_tokens', 'cached_input_tokens', 'cache_write_input_tokens', 'output_tokens', 'reasoning_output_tokens' ] as $key )
+					expect( $bands['short'][ $key ] + $bands['long'][ $key ] === $usage[ $key ] );
+
+				expect( $bands['short']['model_requests'] + $bands['long']['model_requests'] === $scope['model_requests'] );
+			}
+			$bands = $scope['pricing_band_token_totals']['openai_sol'];
+			$short = $bands['short'];
+			$long  = $bands['long'];
+			$cost  = ( $short['uncached_input_tokens'] * 2 + $short['cached_input_tokens'] * 0.1 + $short['output_tokens'] * 10 + $long['uncached_input_tokens'] * 4 + $long['cached_input_tokens'] * 0.2 + $long['output_tokens'] * 15 ) / 1e6;
+			expect( abs( $cost - $scope['api_equivalent_standard_usd'] ) < 0.000001 );
+		}
+		$text = json_encode( $record, JSON_THROW_ON_ERROR );
+		foreach ( [ 'thread_id', 'session_id', 'response_id', 'C:\\Users', 'C:/Users' ] as $private )
+			expect( ! str_contains( $text, $private ) );
+
+		$guide = file_get_contents( "$root/docs/agent-costs.md" );
+		expect( str_contains( $guide, 'not a measured cost for simply rerunning' ) );
+		expect( str_contains( $guide, 'not charges paid' ) );
+		expect( str_contains( strtolower( $guide ), 'not evaluated' ) );
+	},
+	/**
 	 * Checks that every native agent entry point receives the same instructions.
 	 *
 	 * @return void

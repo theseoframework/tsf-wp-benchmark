@@ -99,6 +99,9 @@ function validate_target( array $target ): void {
 		throw new RuntimeException(
 			'Describe the enforced isolation and how the operator will verify it.',
 		);
+
+	if ( isset( $target['worker_supervisor'] ) && normalize_worker_supervisor( $target ) !== $target )
+		throw new RuntimeException( 'Supervisor binaries and ports must be frozen before approval.' );
 }
 
 /**
@@ -344,7 +347,7 @@ function provision_fixture(
 			false,
 		),
 		$root,
-		'WordPress',
+		'wordpress',
 	);
 	$theme = $plan['recipe']['theme'];
 
@@ -409,7 +412,8 @@ function provision_fixture(
 		'DB_CHARSET'                 => 'utf8mb4',
 		'WP_HOME'                    => $site['url'],
 		'WP_SITEURL'                 => $site['url'],
-		'WP_ENVIRONMENT_TYPE'        => 'local',
+		// Preserve production plugin behavior, including Yoast's saved indexables.
+		'WP_ENVIRONMENT_TYPE'        => 'production',
 		'DISABLE_WP_CRON'            => true,
 		'AUTOMATIC_UPDATER_DISABLED' => true,
 		'WP_AUTO_UPDATE_CORE'        => false,

@@ -58,6 +58,88 @@ function runner_recipe(): array {
 
 return [
 	/**
+	 * Preserves plugin messages while detecting native PHP runtime diagnostics.
+	 *
+	 * @return void
+	 */
+	'fixture logs distinguish PHP diagnostics from preserved plugin messages' => function (): void {
+
+		$directory = runner_temp();
+		try {
+			$path     = "$directory/php.log";
+			$messages = "[11-Nov-2026 17:24:18 UTC] [Universally][INFO] Migration completed\n[11-Nov-2026 17:24:21 UTC] [Universally][ERROR] API Key is not configured in settings.\n";
+			TsfBenchmark\write_bytes( $path, $messages );
+			$receipt = TsfBenchmark\inspect_fixture_diagnostics( $path );
+			expect( ! $receipt['php_diagnostics'] && hash( 'sha256', $messages ) === $receipt['sha256'] );
+			foreach ( [ 'Warning', 'Notice', 'Deprecated', 'Fatal error', 'Parse error', 'Recoverable fatal error', 'Strict Standards' ] as $kind ) {
+				foreach ( [ '', '[11-Nov-2026 17:24:21 UTC] PHP ' ] as $prefix ) {
+					TsfBenchmark\write_bytes( $path, $messages . "$prefix$kind: A genuine diagnostic\n" );
+					expect( TsfBenchmark\inspect_fixture_diagnostics( $path )['php_diagnostics'] );
+				}
+			}
+			expect( ! TsfBenchmark\inspect_fixture_diagnostics( "$directory/missing.log" )['php_diagnostics'] );
+		} finally {
+			TsfBenchmark\remove_owned_tree( $directory, dirname( $directory ) );
+		}
+	},
+	/**
+	 * Exercises provisioning with the exact lowercase root used by WordPress ZIPs.
+	 *
+	 * @return void
+	 */
+	'WordPress fixture provisioning accepts the official lowercase archive root' => function (): void {
+
+		$directory = runner_temp();
+		try {
+			TsfBenchmark\make_directory( "$directory/web" );
+			TsfBenchmark\make_directory( "$directory/cache" );
+			TsfBenchmark\make_directory( "$directory/run" );
+			$archive = "$directory/core.zip";
+			$zip     = new ZipArchive();
+			$zip->open( $archive, ZipArchive::CREATE );
+			$zip->addFromString( 'wordpress/wp-settings.php', '<?php // offline stub' );
+			$zip->addFromString( 'wordpress/wp-content/themes/test-theme/style.css', "Version: 1.0\n" );
+			$zip->close();
+			$hash = hash_file( 'sha256', $archive );
+			copy( $archive, "$directory/cache/$hash.zip" );
+			$arm  = [
+				'id'       => 'core-a',
+				'packages' => [],
+				'setup'    => 'core',
+			];
+			$plan = [
+				'id'        => 'offline-provision-test',
+				'namespace' => 'tsfb0123456789ab',
+				'target'    => [
+					'document_root' => "$directory/web",
+					'url'           => 'http://127.0.0.1',
+					'package_cache' => "$directory/cache",
+					'database'      => [
+						'name'     => 'test',
+						'user'     => 'test',
+						'password' => '',
+						'host'     => '127.0.0.1',
+					],
+				],
+				'recipe'    => [
+					'wordpress' => [ 'sha256' => $hash ],
+					'theme'     => [
+						'bundled' => true,
+						'slug'    => 'test-theme',
+						'version' => '1.0',
+					],
+				],
+			];
+			$site = TsfBenchmark\provision_fixture( $plan, "$directory/run", 1, 0, $arm );
+			expect( is_file( $site['root'] . '/wp-settings.php' ) );
+			expect( is_file( $site['root'] . '/wp-config.php' ) );
+			expect( str_contains( file_get_contents( $site['root'] . '/wp-config.php' ), "define( 'WP_ENVIRONMENT_TYPE', 'production' );" ) );
+			expect( is_file( "$directory/run/sites.private.json" ) );
+		} finally {
+			TsfBenchmark\remove_owned_tree( $directory, dirname( $directory ) );
+		}
+	},
+	/**
 	 * Checks reference arm counts, repetitions, and package coverage.
 	 *
 	 * @return void

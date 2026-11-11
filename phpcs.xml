@@ -22,6 +22,8 @@
 				<element value="absolute_path"/>
 				<element value="all_packages"/>
 				<element value="analyze"/>
+				<element value="analyze_legacy"/>
+				<element value="analyze_paired"/>
 				<element value="approve_plan"/>
 				<element value="approved_plan"/>
 				<element value="assert_runtime"/>
@@ -35,6 +37,7 @@
 				<element value="create_plan"/>
 				<element value="digest"/>
 				<element value="discover_environment"/>
+				<element value="inspect_fixture_diagnostics"/>
 				<element value="evidence_input"/>
 				<element value="execute"/>
 				<element value="export_evidence"/>
@@ -52,8 +55,13 @@
 				<element value="median"/>
 				<element value="next_random"/>
 				<element value="normalized_path"/>
+				<element value="normalize_worker_supervisor"/>
 				<element value="parse_arguments"/>
+				<element value="paired_agreement"/>
+				<element value="paired_cohort_verdict"/>
+				<element value="paired_threshold_verdict"/>
 				<element value="percentile"/>
+				<element value="preflight_request"/>
 				<element value="php_command"/>
 				<element value="prepare_run"/>
 				<element value="provision_fixture"/>
@@ -66,23 +74,45 @@
 				<element value="render_environment"/>
 				<element value="render_fixture_config"/>
 				<element value="render_report"/>
+				<element value="render_paired_report"/>
 				<element value="report_escape"/>
 				<element value="report_number"/>
+				<element value="report_paired_interval"/>
+				<element value="report_paired_contrasts"/>
 				<element value="report_run"/>
 				<element value="request"/>
+				<element value="review_bootstrap"/>
+				<element value="review_build_cells"/>
+				<element value="review_cells"/>
+				<element value="review_contrasts"/>
+				<element value="review_diagnostics"/>
+				<element value="review_distribution"/>
+				<element value="review_indices"/>
+				<element value="review_influence"/>
+				<element value="review_linear_relation"/>
+				<element value="review_original_denominators"/>
+				<element value="review_points"/>
 				<element value="require_contained"/>
 				<element value="require_unlinked_path"/>
 				<element value="run_fixture_command"/>
 				<element value="runner_manifest"/>
 				<element value="selected_output"/>
+				<element value="shutdown_worker_supervisor"/>
 				<element value="start_telemetry"/>
+				<element value="start_worker_supervisor"/>
 				<element value="stop_telemetry"/>
+				<element value="stop_worker_supervisor"/>
+				<element value="supervisor_nginx_config"/>
+				<element value="supervisor_diagnostics"/>
+				<element value="supervisor_path"/>
+				<element value="supervisor_preflight"/>
 				<element value="summarize_route"/>
 				<element value="summarize_telemetry_readings"/>
 				<element value="telemetry_command"/>
 				<element value="telemetry_coverage"/>
 				<element value="telemetry_timestamp"/>
 				<element value="validate_fixture_recipe"/>
+				<element value="validate_analysis_context"/>
 				<element value="validate_origin"/>
 				<element value="validate_package"/>
 				<element value="validate_public_package_url"/>
@@ -99,8 +129,13 @@
 	</rule>
 
 	<!-- Host-side validation must read current filesystem state; these are not WordPress hot paths. -->
+	<!-- The official ZIP root "wordpress" is a case-sensitive path, not prose. -->
+	<rule ref="WordPress.WP.CapitalPDangit.MisspelledInText">
+		<exclude-pattern>/src/Fixtures\.php$</exclude-pattern>
+	</rule>
+
 	<rule ref="TSF.Performance.Functions.PHP">
-		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target|review-statistics)\.php$)</exclude-pattern>
 		<!-- One-time plugin API discovery and fresh request-body reads are required control operations. -->
 		<exclude-pattern>/scripts/(?:plugin-setup|probe)\.php$</exclude-pattern>
 	</rule>
@@ -109,16 +144,17 @@
 	<rule ref="WordPress.Security.EscapeOutput.OutputNotEscaped">
 		<exclude-pattern>/benchmark\.php$</exclude-pattern>
 		<exclude-pattern>/src/Runner\.php$</exclude-pattern>
+		<exclude-pattern>/src/SupervisorPreflight\.php$</exclude-pattern>
 		<exclude-pattern>/tests/run\.php$</exclude-pattern>
 		<exclude-pattern>/tests/fixtures/setup/(?:cleanup-receipt|local-target)\.php$</exclude-pattern>
 	</rule>
 
 	<!-- Native HTTP transport runs outside WordPress and intentionally measures its complete response. -->
 	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_close">
-		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+		<exclude-pattern>/(?:src/(?:Runner|SupervisorPreflight|Transport)\.php$|tests/http\.php$)</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_error">
-		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+		<exclude-pattern>/(?:src/(?:Runner|SupervisorPreflight|Transport)\.php$|tests/http\.php$)</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_exec">
 		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
@@ -127,7 +163,7 @@
 		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_init">
-		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
+		<exclude-pattern>/(?:src/(?:Runner|SupervisorPreflight|Transport)\.php$|tests/http\.php$)</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.curl_curl_setopt">
 		<exclude-pattern>/(?:src/(?:Runner|Transport)\.php$|tests/http\.php$)</exclude-pattern>
@@ -139,6 +175,7 @@
 	<!-- Native file operations manage owned host artifacts before WordPress exists. -->
 	<rule ref="WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents">
 		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+		<exclude-pattern>/scripts/review-statistics\.php$</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_chmod">
 		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
@@ -156,6 +193,11 @@
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fwrite">
 		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+		<exclude-pattern>/scripts/review-statistics\.php$</exclude-pattern>
+	</rule>
+	<!-- This standalone CLI creates a new evidence directory atomically without WordPress. -->
+	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_mkdir">
+		<exclude-pattern>/scripts/review-statistics\.php$</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_mkdir">
 		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
@@ -178,7 +220,8 @@
 
 	<!-- The native runner starts owned PHP/telemetry processes; the HTTP test starts its own local server. -->
 	<rule ref="WordPress.PHP.DiscouragedPHPFunctions.system_calls_proc_open">
-		<exclude-pattern>/src/(?:Common|Telemetry)\.php$</exclude-pattern>
+		<exclude-pattern>/src/(?:Common|Supervisor|Telemetry)\.php$</exclude-pattern>
+		<exclude-pattern>/tests/fixtures/supervisor-child\.php$</exclude-pattern>
 		<exclude-pattern>/tests/http\.php$</exclude-pattern>
 	</rule>
 	<!-- var_export returns escaped PHP literals for generated configuration; it does not print diagnostics. -->
@@ -212,6 +255,7 @@
 
 	<!-- Checked exclusive file creation protects private paths; failed socket probes are expected observations. -->
 	<rule ref="WordPress.PHP.NoSilencedErrors.Discouraged">
+		<exclude-pattern>/src/Supervisor\.php$</exclude-pattern>
 		<exclude-pattern>/scripts/(?:fixture-cli|local-target|probe)\.php$</exclude-pattern>
 		<exclude-pattern>/tests/http\.php$</exclude-pattern>
 	</rule>

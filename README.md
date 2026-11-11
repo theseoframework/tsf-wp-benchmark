@@ -10,6 +10,10 @@ official CLI or a suitable existing stack, and explain the proposed setup.
 If using Local, confirm I have manually created and opened my first site.
 Hand control back for OS permission prompts before continuing automation.
 Offer TSF's reference recipe and let me question or change the experiment.
+Ask for my time and spending budget. Offer 10/40/100 iteration targets,
+show their rounded request counts and estimated time, and let me choose
+all supported frontend HTML routes or a subset and which configurations.
+Read docs/run-budget.md and docs/agent-costs.md. Label untested estimates.
 Compare TSF with Yoast SEO, Rank Math, SEOPress, Slim SEO, and AIOSEO
 both standalone and with the reference recipe's default companion bundle.
 Show me the downloads, site changes, network isolation, expected workload,
@@ -31,12 +35,14 @@ Before agent-assisted site setup:
 
 If you already have a working Local site, you do not need another first-site check. An existing site is used for benchmarking only with your explicit approval. Users of another native stack can skip this Local step.
 
+Local's website may ask for an email address before downloading. Direct installers are also published on its official CDN. Your agent can read the public [WinGet manifests](https://github.com/microsoft/winget-pkgs/tree/master/manifests/f/Flywheel/Local) for Windows or [Homebrew cask](https://github.com/Homebrew/homebrew-cask/blob/main/Casks/l/local.rb) for macOS to find a versioned URL and SHA-256. These are community package catalogs, not a Local-maintained release API; you do not need to install either package manager. Download only from Local's official CDN after approval, verify the hash and platform signing identity before execution, and record the exact version and architecture. If metadata is missing or stale, use [Local's releases page](https://localwp.com/releases/).
+
 ## What happens next
 
 1. **Check:** your agent finds available tools without changing your sites.
 2. **Choose:** you choose the stack and benchmark recipe.
 3. **Approve:** your agent explains the setup. You approve it in your agent's interface; your OS may also ask for permission.
-4. **Test:** after packages are cached and isolation is confirmed, the runner creates the fixtures, checks them, and measures all planned passes.
+4. **Test:** after packages are cached and isolation is confirmed, the runner checks the server, creates the fixtures, and measures all planned passes. On Windows, its optional worker supervisor tests real WordPress across worker recycling before collection, without patching Local.
 5. **Review:** cleanup is verified, then you get the report and an evidence export you can share.
 
 ```mermaid
@@ -56,9 +62,27 @@ The main benchmark compares **The SEO Framework against Yoast SEO, Rank Math, AI
 
 The reference recipe covers nine frontend HTML routes and three complete passes, with two WordPress-only controls. Small smoke tests check the plumbing; they do not establish a broad performance claim.
 
+## Choose time and cost before setup
+
+Your agent should ask how much time you have, which page types and plugin configurations to test, and whether there is an API spending cap. Estimates below retain all nine configurations and all nine frontend HTML routes on the tested **Ryzen 7 5800X3D / 64 GiB Windows** machine:
+
+| Requested iterations per configuration, route and pass | Actual rounded count | Purpose | Estimated collection time |
+| --- | ---: | --- | --- |
+| 10 | 18 | Smoke test, one pass | About 15 min, projected |
+| 40 | 54 | Limited investigation, two passes | About 1 h 7 min, projected |
+| 100 | 108 | Reference-sized repeated collection, three passes | **2 h 24 min observed** |
+
+These use existing recipe fields, not new CLI flags. Balanced request orders explain the rounding. The 40 choice preserves the reference warmup count; both 10 and 40 are classified as smoke-only by the current analysis rules. Allow additional time for qualification (about nine minutes for the tested Windows preflight), downloads, setup, approvals, cleanup, and reporting. Route subsets can be much quicker; configuration subsets need both controls, an anchor, and a comparator. **More iterations do not guarantee accuracy:** the completed reference run's historical version 1.0.0 verdict was inconclusive because its timing gates failed. All currently supported collection is frontend HTML; admin, RSS, and sitemap cohorts are not implemented.
+
+The first Windows implementation/test was run by **GPT-6.1 Sol high**. It used about 75.66M input tokens (99.41% cached) and 224k output tokens, including development and troubleshooting in a long chat. This is not a normal rerun budget. A fresh-chat full Windows rerun has an **unevaluated planning allowance of roughly 3–12M input and 50k–150k output tokens**, plus a troubleshooting reserve. Subscriptions and direct API charges differ. See the [time/scope tables](docs/run-budget.md) and [audited usage, pricing and subscription guide](docs/agent-costs.md) before accepting an estimate. **Grok 4.7 on macOS: not evaluated.**
+
 ## Understand the result
 
 The report explains what ran, whether the environment was suitable, and whether repeated passes agreed. It distinguishes whole-response time from **estimated plugin-added time**. CPU load and available thermal readings have sources and coverage; missing sensors stay explicitly unavailable.
+
+The default analysis is version 2.0.0, `paired-block-1`: paired millisecond differences and simultaneous confidence intervals are primary. It keeps every declared route, configuration, pass, and negative cell. Threshold contrasts avoid dividing by a noisy addition; the ratio of average additions is descriptive and differs from the historical mean of route ratios. Reference-sized threshold support requires all five dependence/pass analyses and the per-pass checks, and applies only conditionally to the observed session. One uncertain comparator does not veto other comparisons; a claim about all comparators needs support for every one.
+
+The new method was adopted after reviewing the completed Windows data. Reanalyzing those same observations is retrospective and exploratory, not independent confirmation. The original version 1.0.0 report, inconclusive verdict, and evidence remain intact. `php benchmark.php report --run OLD --out NEW` generates the full current comparison offline in a fresh export; `verify` still replays historical evidence with its recorded version. See the [review and caveats](docs/statistical-review.md).
 
 The reference recipe is an invitation to reproduce and challenge the experiment. Change the workload or settings when useful, and keep those changes visible. No result is predetermined.
 
@@ -68,10 +92,12 @@ The reference recipe is an invitation to reproduce and challenge the experiment.
 - [Command reference](docs/cli.md)
 - [macOS validation checklist](docs/macos-validation.md)
 - [What has been tested](docs/validation.md)
+- [Workload choices and estimated time](docs/run-budget.md)
+- [Agent token usage and cost estimates](docs/agent-costs.md)
 
 ## Compare other supported SEO plugins
 
-You can also compare supported SEO plugins with each other, such as Yoast SEO against Slim SEO. Choose a comparison anchor: the plugin whose estimated added time is the denominator in the reported ratios. TSF can be omitted from this custom experiment.
+You can also compare supported SEO plugins with each other, such as Yoast SEO against Slim SEO. Choose a comparison anchor: the plugin against which direct differences and threshold contrasts are calculated. Its estimated addition is also the denominator in the descriptive ratio of average additions. TSF can be omitted from this custom experiment.
 
 Use this alternate prompt and replace the bracketed plugin names:
 
@@ -82,8 +108,10 @@ Use supported SEO plugins and help me choose the comparison anchor and
 configurations. Record these choices in a custom recipe.
 Use the same methodology as the TSF reference: two WordPress-only controls,
 balanced request orders, warmups, repeated passes, output validation,
-environment checks, and reproducible evidence. Keep the full declared
-workload; do not replace it with a small smoke test.
+environment checks, and reproducible evidence. Ask for my time/spending
+budget, routes, configurations and sampling target before planning.
+Explain smoke versus repeated collection and show estimated time/cost.
+Keep the complete workload I approve; do not silently shrink it later.
 Check installed native WordPress stacks and explain the proposed setup,
 downloads, site changes, network isolation, expected workload, and cleanup.
 Wait for my approval before installing or setting anything up.

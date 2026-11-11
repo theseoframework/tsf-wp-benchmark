@@ -16,6 +16,10 @@ Report what is available and what remains unknown. Check the server host; a remo
 
 ## 2. Offer a target and a recipe
 
+Before planning, read [the workload/time tables](run-budget.md) and [agent cost guidance](agent-costs.md). Ask the user for their available time and spending cap, which configurations to compare, and all nine frontend HTML routes versus a subset. Offer 10 (smoke), 40 (limited two-pass investigation, about an hour on the Windows baseline), and 100 (reference-sized repeated collection) iteration targets with actual rounded counts, measured/projected durations, and separate setup/preflight allowances. The current runner classifies both 10 and 40 as smoke-only; never present either as a qualified performance claim or call 100 automatically accurate. Explain that all currently supported routes are frontend HTML; admin, feeds, and sitemap cohorts are not implemented.
+
+If the user already explicitly chose the full reference workload or a concrete budget/scope, honor that choice without asking again. Otherwise, resolve these choices before the concrete approval proposal. If their time is too short for setup and qualification, offer a smaller valid scope or postpone; do not omit controls, validation, recycling tests, or necessary isolation to fit an estimate. Record the chosen model, reasoning/speed, billing route, token/cash budget assumptions, and unknowns. Treat subscription use and hypothetical API-equivalent cost separately.
+
 Offer the user:
 
 - **Local with its official CLI**, if available or if the user wants to install it.
@@ -23,11 +27,15 @@ Offer the user:
 
 Never infer that an existing development site may be overwritten. A stack is a set of runtimes; using that stack does not require reusing a populated site.
 
+For a new Local Windows plan, prefer the [owned worker supervisor](cli.md#owned-windows-worker-supervisor) when the installed nginx/PHP binaries are available. Include its processes and private ports in the initial proposal. The stock Windows CGI pool has failed ordinary recycling in real WordPress tests; do not wait for another full experiment to fail before selecting the qualified supervisor. It preserves 500-request recycling and changes no Local files. Existing native stacks and macOS keep their own worker management.
+
 Suggest the TSF reference recipe and explain its nine HTML routes, competitors, fixture content, three passes, and estimated-added-time metric. Let the user inspect, criticize, or change it. Explain proposed changes and preserve them as a custom recipe. Do not silently replace pinned inputs with newer releases. Inspect `recipe.fixtures` rather than assuming that two recipes have the same content or number of posts.
 
 Use `examples/target.native.json` as a starting point for an existing native stack. Keep the filled target, credentials, and run directory under `.local/`, outside the served site. Use absolute filesystem paths in local configuration, but keep them out of public exports.
 
 For Local, first obtain approval for any installation, CLI enablement, and creation of a dedicated shell site. Do not create a shell site simply to discover how Local works.
+
+For approved Local downloads, follow [the installer-source guidance](environment.md#local-installer-sources): use WinGet or Homebrew metadata to locate the official CDN installer and hash without installing those package managers. Check the version, architecture, hash, and signing identity before execution. Keep Local attribution and its releases-page fallback; do not treat an email form as the only download path or bypass installation approval.
 
 Before automated Local site creation, confirm that the user has manually created their first disposable site, completed OS permission prompts, and opened its homepage and WordPress admin successfully. If not, hand control back for that first-site setup and wait for confirmation before resuming. An already working Local site satisfies this check; it does not authorize using that site's content for benchmarking. If a benchmark shell site has already been created, let the user finish its permissions and opening checks rather than creating another site.
 
@@ -59,6 +67,7 @@ Explain these points before asking for approval:
 4. How outbound access will be blocked before tested plugins activate.
 5. What the experiment measures, how many passes run, and which limitations remain.
 6. What cleanup removes and what evidence remains.
+7. Estimated time by phase, estimated agent usage/cost, and what happens if setup work exceeds the agreed budget.
 
 The agent's approval control may look different in each application. Accept an explicit user response approving this concrete plan. Do not claim the repository can press an approval button or bypass an OS prompt.
 
@@ -90,6 +99,18 @@ The receipt records the operator's verification. It does not enforce a firewall 
 
 ## 5. Provision, qualify, and measure all passes
 
+**Address the plumbing before trusting measurements.** Every host may expose different CLI, DLL/PATH, permissions, path-encoding, database, worker, OPcache, network, or telemetry issues. Start with the installed stack and preserve deliberate user settings. Propose useful isolated improvements when needed, explain their effect, and obtain approval before configuration changes. Prefer benchmark-owned configuration and process-only environment changes; never patch Local's installation files. Keep original settings/ownership evidence for restoration. A calibrated 2 GiB allocation on this host is not a default to impose on weaker machines.
+
+Retain failed-attempt logs and explain what failed and what changed. Do not repeatedly relaunch, bypass security prompts, suppress PHP diagnostics, raise worker lifetimes, or keep retrying until a run passes. If the repair changes the approved setup or exceeds the user's time/cost cap, present the revised concrete proposal. A declined improvement remains an explicit limitation; a blocking runtime or isolation condition means stop, not a qualified reference result. See [environment qualification](environment.md).
+
+For a Windows target using `worker_supervisor`, first run:
+
+```sh
+php benchmark.php preflight --run .local/my-run
+```
+
+Use [the owned worker-supervisor setup](cli.md#owned-windows-worker-supervisor) when the installed Local Windows CGI pool fails normal recycling. Discover the installed binary/DLL paths, include them in the private target before planning, and explain the extra owned processes and loopback ports in the setup proposal. Never patch Local's files or raise the CGI request limit to avoid testing recycling. Native servers must use the same approved outbound isolation as the original PHP binaries. Compare monitoring-on/off results, record resource use and unavailable sensors, and explain a detectable observer cost before collection. A failed preflight retains its evidence and prevents the full run.
+
 ```sh
 php benchmark.php run --run .local/my-run
 ```
@@ -116,6 +137,8 @@ php benchmark.php export --run .local/my-run --out .local/my-public-evidence
 Cleanup must use the approved run's ownership record, not names guessed from a directory pattern. Preserve evidence. If a resource cannot safely be removed, name it and explain the remaining action; do not delete something broader. A report generated before verified cleanup remains provisional and records a blocker.
 
 Explain the per-pass results and whether the conclusion is consistent. Distinguish estimated plugin-added response time from whole-response time and exclusive CPU time. Link the report and evidence. `verify` regenerates the numerical analysis and rendered report to check the saved result.
+
+Record actual elapsed phase times and whatever agent usage the harness exposes. Use final per-response counts or verified cumulative deltas, avoiding duplicate snapshots, overlapping scopes, cached/input double counting, and reasoning/output double counting. Include delegated agents when available and state coverage gaps. Never reconstruct tokens from character counts and call them measured usage. Keep raw chat/account logs private; publish only reviewed aggregates. If usage or prices are unavailable, say **not evaluated**. Do not treat this first development run as the expected cost of a routine rerun.
 
 Run directories contain private target and approval information. Do not share the entire directory. Use `export` to create a fresh public evidence directory, then review that export before sharing it. Do not append private logs, target files, or approval records to it. Report the tested OS, any untested integrations, environment limitations, and cleanup status. Exporting does not publish anything automatically.
 

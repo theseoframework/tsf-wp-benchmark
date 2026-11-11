@@ -41,13 +41,16 @@ foreach ( [
 	'Common',
 	'Protocol',
 	'Report',
+	'PairedReport',
 	'Transport',
 	'Environment',
 	'Telemetry',
+	'Supervisor',
 	'FixtureRecipe',
 	'Fixtures',
 	'Evidence',
 	'Runner',
+	'SupervisorPreflight',
 ] as $module )
 	require_once __DIR__ . '/src/' . $module . '.php';
 
@@ -69,6 +72,7 @@ function parse_arguments( array $arguments ): array {
 		'help'      => [],
 		'isolation' => [ 'run', 'operator', 'evidence' ],
 		'plan'      => [ 'recipe', 'target', 'out' ],
+		'preflight' => [ 'run' ],
 		'prepare'   => [ 'run' ],
 		'report'    => [ 'run', 'out' ],
 		'run'       => [ 'run' ],
@@ -195,6 +199,9 @@ function main( array $arguments ): int {
 			case 'run':
 				$result = collect_run( absolute_path( $need( 'run' ) ) );
 				break;
+			case 'preflight':
+				$result = supervisor_preflight( absolute_path( $need( 'run' ) ) );
+				break;
 			case 'report':
 				$result = isset( $options['out'] )
 					? export_evidence(
@@ -238,6 +245,7 @@ function main( array $arguments ): int {
 						'approve --run DIRECTORY --operator NAME',
 						'prepare --run DIRECTORY',
 						'isolation --run DIRECTORY --operator NAME --evidence DESCRIPTION',
+						'preflight --run DIRECTORY',
 						'run --run DIRECTORY',
 						'cleanup --run DIRECTORY',
 						'report --run DIRECTORY [--out NEW_DIRECTORY]',

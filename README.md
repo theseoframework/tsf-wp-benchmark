@@ -3,7 +3,7 @@
 Open this repository in Codex, Cursor, VS Code Copilot, or Claude. Copy this prompt:
 
 ```text
-Help me run a trustworthy SEO plugin benchmark using this repository: https://github.com/theseoframework/wp-plugin-benchmark
+Help me run a trustworthy SEO plugin benchmark using this repository: https://github.com/theseoframework/tsf-wp-benchmark
 Read the repository instructions and docs/agent-workflow.md first.
 Check which native WordPress stacks I already have. Offer Local with its
 official CLI or a suitable existing stack, and explain the proposed setup.
@@ -102,7 +102,7 @@ You can also compare supported SEO plugins with each other, such as Yoast SEO ag
 Use this alternate prompt and replace the bracketed plugin names:
 
 ```text
-Help me compare [plugin A] with [plugin B] using this repository: https://github.com/theseoframework/wp-plugin-benchmark
+Help me compare [plugin A] with [plugin B] using this repository: https://github.com/theseoframework/tsf-wp-benchmark
 Read the repository instructions and docs/agent-workflow.md first.
 Use supported SEO plugins and help me choose the comparison anchor and
 configurations. Record these choices in a custom recipe.

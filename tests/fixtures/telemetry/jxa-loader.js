@@ -8,11 +8,12 @@
  * Loads the actual macOS parser and shared checks with built-in JXA.
  *
  * The PHP test replaces the two placeholder identifiers with JSON-encoded
- * strings before execution. No sampler or WordPress site is started here.
+ * strings before execution. Compile them as a function body so the sampler's run
+ * declaration cannot become the JXA script's entry point. No sampler starts.
  */
 ObjC.import( 'Foundation' );
 
-eval(
+Function(
 	ObjC.unwrap(
 		$.NSString.stringWithContentsOfFileEncodingError(
 			__TSFB_SCRIPT_JSON__,
@@ -20,4 +21,4 @@ eval(
 			null,
 		),
 	) + __TSFB_CHECKS_JSON__,
-);
+)();

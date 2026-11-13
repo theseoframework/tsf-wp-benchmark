@@ -11,7 +11,7 @@
   },
   "downloads": false,
   "isolation": {
-    "mode": "offline",
-    "description": "After all archives are cached, disconnect external networking while leaving loopback available. Verify this before the agent records isolation approval."
+    "mode": "wordpress-http",
+    "description": "Block and privately log WordPress HTTP/mail. Direct cURL/raw sockets remain uncontrolled; no host network changes."
   }
 }

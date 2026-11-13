@@ -15,3 +15,9 @@ These are runner defects found during the first native Windows WordPress integra
 | Cleanup error masked the initiating preflight failure | A failure during recovery could replace the original setup exception in CLI output. | Preserve the initiating exception and store cleanup errors separately while still stopping the owned server job. |
 
 Local's Windows CGI recycling failure was reproduced independently of WordPress. It is a host-stack issue; no Local program files were modified. The optional owned supervisor is a separate feature and must pass actual WordPress preflight before plugin timings are collected.
+
+## macOS CI cleanup fixture
+
+Both macOS jobs in [the published CI run](https://github.com/theseoframework/tsf-wp-benchmark/actions/runs/43486934444) failed the database-host cleanup test, with 112 cases passing and one failing under PHP 8.2 and 8.4. The fixture declared a global `mysqli` class; `php -n` cannot unload an extension compiled into PHP, so that declaration can collide with the native class. This is a test-fixture defect, not evidence that real database cleanup failed.
+
+The fixture now imports a uniquely named double into a test-owned copy of the unchanged production script. A pre-existing global-class sentinel covers the collision even when the test host lacks native mysqli. Host assertion failures include child stderr. The collision was reproduced using an already installed Windows mysqli extension; the fixed fixture passes with that extension loaded and with ctype disabled. Removing the import makes the regression fail. No software installation or database connection was needed. A new macOS CI run is still required to confirm the published runner there.

@@ -17,6 +17,94 @@ use RuntimeException;
  */
 
 /**
+ * Materializes the network policy only while creating a new plan.
+ *
+ * Saved plans are never normalized: a missing or altered policy cannot relax
+ * their recorded approval. Existing offline/firewall targets keep their scope.
+ *
+ * @param array $target Requested private target configuration.
+ * @return array Target with an explicit network policy for approval.
+ */
+function normalize_network_policy( array $target ): array {
+
+	if ( ! isset( $target['isolation'] ) )
+		$target['isolation'] = [
+			'mode'        => 'wordpress-http',
+			'description' => 'Block and privately log WordPress HTTP/mail calls. Raw sockets and direct cURL remain uncontrolled; no host network changes.',
+		];
+
+	return $target;
+}
+
+/**
+ * Requires the worker to establish the exact approved network policy.
+ *
+ * A WordPress guard is not proof of an external block. Legacy offline/firewall
+ * targets still require raw TCP checks in addition to the WordPress guard.
+ *
+ * @param array $network Worker evidence without private request URLs.
+ * @param array $target Approved target with an explicit policy.
+ * @param bool  $check_external Whether initial external TCP checks are required.
+ * @return void
+ * @throws RuntimeException When guards fail or the policy does not match.
+ */
+function assert_network_policy( array $network, array $target, bool $check_external = true ): void {
+
+	$mode = $target['isolation']['mode'] ?? null;
+	if (
+		   ! \in_array( $mode, [ 'wordpress-http', 'offline', 'external-firewall' ], true )
+		|| ( $network['mode'] ?? null ) !== $mode
+		|| true !== ( $network['wordpress_http_blocked'] ?? null )
+		|| true !== ( $network['wordpress_mail_blocked'] ?? null )
+		|| true !== ( $network['automatic_updates_disabled'] ?? null )
+		|| true !== ( $network['cron_disabled'] ?? null )
+		|| ( $check_external && 'wordpress-http' !== $mode && true !== ( $network['blocked'] ?? null ) )
+	) {
+		throw new RuntimeException( 'HTTP worker did not establish the approved HTTP/mail, update, cron, or external network controls.' );
+	}
+}
+
+/**
+ * Reads verified external isolation or the approved WordPress-only scope.
+ *
+ * The default needs no extra permission prompt or fabricated verification.
+ * External modes keep the exact-plan operator receipt required historically.
+ *
+ * @param array  $plan Already approved plan with a validated target.
+ * @param string $run Private run directory.
+ * @return array Public policy scope without private receipt details.
+ * @throws RuntimeException When external verification is missing or mismatched.
+ */
+function run_network_policy( array $plan, string $run ): array {
+
+	$mode = $plan['target']['isolation']['mode'] ?? null;
+	if ( 'wordpress-http' === $mode )
+		return [
+			'mode'                    => $mode,
+			'operator_verified'       => false,
+			'external_block_verified' => false,
+		];
+
+	if ( ! \in_array( $mode, [ 'offline', 'external-firewall' ], true ) )
+		throw new RuntimeException( 'The saved plan requires an explicit network policy.' );
+
+	$isolation = read_json( "$run/isolation.private.json" );
+	if (
+		   ( $isolation['plan_sha256'] ?? '' ) !== digest( $plan )
+		|| empty( $isolation['operator'] )
+		|| ( $isolation['mode'] ?? null ) !== $mode
+	) {
+		throw new RuntimeException( 'The approved external isolation must be verified and recorded before activation.' );
+	}
+
+	return [
+		'mode'                    => $mode,
+		'operator_verified'       => true,
+		'external_block_verified' => true,
+	];
+}
+
+/**
  * Validates an existing native target without installing or changing its stack.
  *
  * @param array $target Private target configuration, including database credentials.
@@ -87,17 +175,17 @@ function validate_target( array $target ): void {
 
 	if ( ! \in_array(
 		$target['isolation']['mode'] ?? '',
-		[ 'offline', 'external-firewall' ],
+		[ 'wordpress-http', 'offline', 'external-firewall' ],
 		true,
 	) ) {
 		throw new RuntimeException(
-			'Select enforced offline or external-firewall isolation.',
+			'Select wordpress-http, offline, or external-firewall network controls.',
 		);
 	}
 
 	if ( empty( $target['isolation']['description'] ) )
 		throw new RuntimeException(
-			'Describe the enforced isolation and how the operator will verify it.',
+			'Describe the approved network controls and their limitations.',
 		);
 
 	if ( isset( $target['worker_supervisor'] ) && normalize_worker_supervisor( $target ) !== $target )
@@ -403,7 +491,9 @@ function provision_fixture(
 		write_bytes( $root . $destination, $bytes );
 	}
 
-	$db        = $plan['target']['database'];
+	$db          = $plan['target']['database'];
+	$network_log = "$run/network-$id.private.ndjson";
+	write_bytes( $network_log, '' );
 	$constants = [
 		'DB_NAME'                    => $db['name'],
 		'DB_USER'                    => $db['user'],
@@ -425,6 +515,8 @@ function provision_fixture(
 		'SAVEQUERIES'                => false,
 		'TSF_BENCH_TOKEN'            => $site['token'],
 		'TSF_BENCH_RUN'              => $plan['id'],
+		'TSF_BENCH_NETWORK_MODE'     => $plan['target']['isolation']['mode'] ?? 'offline',
+		'TSF_BENCH_NETWORK_LOG'      => $network_log,
 	];
 
 	foreach ( [

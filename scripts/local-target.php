@@ -58,8 +58,8 @@ $target = [
 	],
 	'downloads'     => false,
 	'isolation'     => [
-		'mode'        => 'offline',
-		'description' => 'Operator must confirm enforced isolation before activation.',
+		'mode'        => 'wordpress-http',
+		'description' => 'Block and privately log WordPress HTTP/mail. Direct cURL/raw sockets remain uncontrolled; no host network changes.',
 	],
 ];
 

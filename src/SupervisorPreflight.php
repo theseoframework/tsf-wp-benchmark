@@ -74,9 +74,7 @@ function supervisor_preflight( string $run ): array {
 	if ( ! isset( $plan['target']['worker_supervisor'] ) )
 		throw new RuntimeException( 'Preflight requires an owned worker supervisor.' );
 
-	$isolation = read_json( "$run/isolation.private.json" );
-	if ( digest( $plan ) !== $isolation['plan_sha256'] )
-		throw new RuntimeException( 'Verify approved isolation before preflight.' );
+	run_network_policy( $plan, $run );
 
 	$directory = "$run/preflight";
 	if ( file_exists( $directory ) )
@@ -101,7 +99,7 @@ function supervisor_preflight( string $run ): array {
 		$site['fixture'] = run_fixture_command( $diagnostic_plan, $directory, $site, 'install' );
 		$network         = fixture_control( $site, $plan['target'], 'isolation' );
 		write_json( "$directory/isolation.json", $network );
-		if ( ! $network['blocked'] ) throw new RuntimeException( 'Preflight worker can reach the internet.' );
+		assert_network_policy( $network, $plan['target'] );
 
 		run_fixture_command( $diagnostic_plan, $directory, $site, 'activate' );
 		write_bytes( $site['root'] . '/wp-content/mu-plugins/999-preflight.php', file_get_contents( \dirname( __DIR__ ) . '/scripts/stubs/preflight-worker.php' ) );

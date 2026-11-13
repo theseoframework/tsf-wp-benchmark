@@ -69,6 +69,87 @@ return [
 		expect( str_contains( $guide, 'not a measured cost for simply rerunning' ) );
 		expect( str_contains( $guide, 'not charges paid' ) );
 		expect( str_contains( strtolower( $guide ), 'not evaluated' ) );
+
+		$grok  = TsfBenchmark\read_json( "$root/docs/agent-usage-2026-11-13.json" );
+		$usage = $grok['usage'];
+		expect( 22488387 === $usage['input_tokens'] && 22648958 === $usage['total_tokens'] );
+		expect( $usage['ordinary_input_tokens'] + $usage['cached_input_tokens'] + $usage['cache_write_input_tokens'] === $usage['input_tokens'] );
+		expect( $usage['input_tokens'] + $usage['output_tokens'] === $usage['total_tokens'] );
+		expect( 18 === $grok['coverage']['numeric_usage_rows'] && 1 === $grok['coverage']['free_rows_without_usage'] );
+		expect( null === $grok['coverage']['free_row_tokens'] && null === $grok['coverage']['individual_model_requests'] );
+		expect( false === $grok['timed_collection_completed'] && false === $grok['pricing']['invoice_reconstruction'] );
+		expect( 'Included' === $grok['operator']['billing_status'] && null === $grok['coverage']['exact_pool_debit_usd'] );
+		foreach ( $grok['pricing']['scenarios'] as $scenario ) {
+			$rates = $scenario['rate_per_million'];
+			$cost  = (
+				$usage['ordinary_input_tokens'] * $rates['ordinary_input']
+				+ $usage['cached_input_tokens'] * $rates['cache_read']
+				+ $usage['output_tokens'] * $rates['output']
+			) / $grok['pricing']['rate_unit_tokens'];
+			expect( abs( $cost - $scenario['api_equivalent_usd'] ) < 1e-9 );
+		}
+		$base = $grok['pricing']['scenarios'][0]['api_equivalent_usd'];
+		expect( abs( $base - 12.87588 ) < 1e-9 );
+		expect( abs( array_sum( $grok['pricing']['base_cost_components_usd'] ) - $base ) < 1e-9 );
+		expect( false === $grok['allowance']['pools_interchangeable'] && false === $grok['allowance']['projection_is_plan_entitlement'] );
+		expect( null === $grok['allowance']['actual_account_used_or_remaining_percent'] );
+		foreach ( $grok['allowance']['multiplier_projection'] as $tier ) {
+			$pool = $grok['allowance']['reported_cursor_models_usd'] * $tier['multiplier'] / 50;
+			expect( abs( $pool - $tier['hypothetical_eligible_pool_usd'] ) < 1e-9 );
+			expect( abs( 100 * $base / $pool - $tier['regular_scope_share_percent'] ) < 1e-9 );
+		}
+		$effort = $grok['effort_scenario'];
+		expect( true === $effort['not_observed_usage'] && true === $effort['input_held_fixed'] );
+		expect( abs( $usage['output_tokens'] * $effort['output_multiplier'] - $effort['estimated_output_tokens'] ) < 1e-9 );
+		expect( abs( $base + $usage['output_tokens'] * 0.3 * 6 / 1e6 - $effort['regular_api_equivalent_usd'] ) < 1e-9 );
+		foreach ( [ '$12.875880', '$13.164908', '0.64%', '1.29%' ] as $figure )
+			expect( str_contains( $guide, $figure ), 'Recorded Grok figure missing from the guide: ' . $figure );
+	},
+	/**
+	 * Checks illustrative cost arithmetic without treating assumptions as usage.
+	 *
+	 * @return void
+	 */
+	'prospective costs distinguish cache assumptions and measured usage' => function (): void {
+
+		$text = file_get_contents( dirname( __DIR__ ) . '/docs/agent-costs.md' );
+		foreach (
+			[
+				[ 'GPT-6.1 Sol Standard', 2, 0.1, 10 ],
+				[ 'GPT-6.1 Sol Fast', 4, 0.2, 20 ],
+				[ 'Grok 4.7 Standard', 2, 0.5, 6 ],
+				[ 'Claude Sonnet 5.5 Standard', 2, 0.1, 10 ],
+				[ 'Claude Opus 5.5 Standard', 4, 0.2, 20 ],
+			] as [ $model, $input, $cache, $output ]
+		) {
+			$cached_rate = 0.1 * $input + 0.9 * $cache;
+			$expected    = sprintf(
+				'| %s | $%.2f–$%.2f | $%.2f–$%.2f | Not evaluated |',
+				$model,
+				3 * $cached_rate + 0.05 * $output,
+				12 * $cached_rate + 0.15 * $output,
+				3 * $input + 0.05 * $output,
+				12 * $input + 0.15 * $output,
+			);
+			expect( str_contains( $text, $expected ), 'Incorrect estimated costs for ' . $model );
+		}
+		expect( str_contains( $text, 'actual token usage: not evaluated' ) );
+		expect( str_contains( $text, 'no-cache column excludes cache writes' ) );
+		expect( str_contains( $text, 'not a guaranteed upper bound' ) || str_contains( $text, 'or a guaranteed upper bound' ) );
+	},
+	/**
+	 * Prevents known budget questionnaires returning to the copyable prompts.
+	 *
+	 * @return void
+	 */
+	'agent prompts estimate costs before setup without requiring a budget' => function (): void {
+
+		$root = dirname( __DIR__ );
+		foreach ( [ 'README.md', 'docs/agent-workflow.md', 'docs/agent-costs.md' ] as $path ) {
+			$text = file_get_contents( "$root/$path" );
+			foreach ( [ 'Ask for my time', 'Ask for my time/spending', 'Ask the user for their available time' ] as $old )
+				expect( ! str_contains( $text, $old ), 'Budget questionnaire returned in ' . $path );
+		}
 	},
 	/**
 	 * Checks that every native agent entry point receives the same instructions.
@@ -194,11 +275,11 @@ return [
 		);
 	},
 	/**
-	 * Checks the documented order of setup, isolation, cleanup, and publication.
+	 * Checks optional external isolation, setup order, cleanup, and publication.
 	 *
 	 * @return void
 	 */
-	'workflow keeps installation and isolation approvals before activation' => function (): void {
+	'workflow separates default controls from optional external verification' => function (): void {
 
 		$root      = dirname( __DIR__ );
 		$text      = file_get_contents(
@@ -233,7 +314,15 @@ return [
 				&& $prepare < $isolation
 				&& $isolation < $run
 			),
-			'The documented sequence must isolate before activation.',
+			'Optional external verification must precede activation.',
+		);
+		expect(
+			str_contains( $text, 'No separate isolation receipt or extra user confirmation is required for this default.' ),
+			'Default WordPress controls must not require an extra isolation approval.',
+		);
+		expect(
+			str_contains( $text, 'For a stronger mode, record the operator' ),
+			'Stronger controls still require actual external verification.',
 		);
 		expect(
 			(

@@ -41,7 +41,7 @@ function create_plan( array $recipe, array $target, string $output ): array {
 	}
 
 	validate_recipe( $recipe );
-	$target = normalize_worker_supervisor( $target );
+	$target = normalize_network_policy( normalize_worker_supervisor( $target ) );
 	validate_target( $target );
 	validate_fixture_recipe( $recipe['fixtures'] ?? [] );
 
@@ -86,7 +86,9 @@ function create_plan( array $recipe, array $target, string $output ): array {
 			'host_telemetry',
 			'owned_resource_cleanup',
 		],
-		'network'       => 'Operator-approved enforced isolation is required before any competitor activation.',
+		'network'       => 'wordpress-http' === $target['isolation']['mode']
+			? 'WordPress HTTP/mail calls are blocked and privately logged. Raw sockets/direct cURL remain uncontrolled; this differs from the historical externally isolated recipe.'
+			: 'Operator-approved external isolation and WordPress HTTP/mail guards are required before activation.',
 	];
 	if ( isset( $target['worker_supervisor'] ) )
 		$plan['consent_scope'][] = 'owned_native_supervisor_and_wordpress_preflight';
@@ -214,7 +216,7 @@ function prepare_run( string $run ): array {
 		"$run/state.json",
 		[
 			'phase' => 'prepared',
-			'next'  => 'Enforce the approved isolation, verify it, then record it with isolation --run PATH --operator NAME --evidence DESCRIPTION.',
+			'next'  => 'wordpress-http requires no host network changes or separate isolation receipt. External modes require verification recorded with isolation --run PATH --operator NAME --evidence DESCRIPTION.',
 		],
 	);
 
@@ -222,10 +224,10 @@ function prepare_run( string $run ): array {
 }
 
 /**
- * Records concrete operator verification of an already enforced network policy.
+ * Records review of the exact approved external network policy.
  *
- * Worker canaries still run before plugin activation. This receipt itself does
- * not configure a firewall, disconnect a host, or authorize an unapproved change.
+ * WordPress-only mode requires no separate operator receipt. External modes also
+ * require verification and TCP canaries. The receipt changes no host settings.
  *
  * @param string $run      Approved and prepared private run directory.
  * @param string $operator Operator who verified the enforced restriction.
@@ -245,7 +247,7 @@ function confirm_isolation( string $run, string $operator, string $evidence ): a
 
 	if ( 'prepared' !== read_json( "$run/state.json" )['phase'] )
 		throw new RuntimeException(
-			'Cache packages before disconnecting external networking.',
+			'Cache packages before confirming the network policy.',
 		);
 
 	$receipt = [
@@ -262,7 +264,9 @@ function confirm_isolation( string $run, string $operator, string $evidence ): a
 
 	return [
 		'isolation_recorded'                             => true,
-		'activation_still_requires_worker_canary_checks' => true,
+		'mode'                                           => $receipt['mode'],
+		'activation_still_requires_worker_guard_checks'  => true,
+		'activation_still_requires_worker_canary_checks' => 'wordpress-http' !== $receipt['mode'],
 	];
 }
 
@@ -474,16 +478,7 @@ function collect_run( string $run ): array {
 			'Only a prepared, unused run can collect measurements.',
 		);
 
-	$isolation = read_json( "$run/isolation.private.json" );
-
-	if (
-		   ( $isolation['plan_sha256'] ?? '' ) !== digest( $plan )
-		|| empty( $isolation['operator'] )
-	) {
-		throw new RuntimeException(
-			'Enforced isolation must be verified and recorded before activation.',
-		);
-	}
+	$isolation = run_network_policy( $plan, $run );
 
 	$probe        = execute( php_command(
 		$target,
@@ -505,18 +500,22 @@ function collect_run( string $run ): array {
 			'Cannot create sample evidence.',
 		);
 
-	$environment = [
+	$environment                     = [
 		'host'       => discover_environment(),
 		'conditions' => [],
 		'blockers'   => [],
 		'runtime'    => [],
 		'telemetry'  => [],
-		'isolation'  => [
-			'mode'              => $isolation['mode'],
-			'operator_verified' => true,
-		],
+		'isolation'  => $isolation,
 	];
-	$state       = [
+	if ( 'wordpress-http' === $isolation['mode'] )
+		$environment['conditions'][] = [
+			'scope'    => 'network',
+			'severity' => 'limitation',
+			'code'     => 'wordpress_http_scope',
+			'message'  => 'WordPress HTTP/mail calls are blocked and privately logged; direct cURL/raw sockets remain uncontrolled. Any in-response waiting remains measured with no synthetic penalty. This network policy differs from the historical externally isolated recipe.',
+		];
+	$state                           = [
 		'phase'      => 'running',
 		'started_at' => gmdate( 'c' ),
 	];
@@ -562,10 +561,7 @@ function collect_run( string $run ): array {
 					$network,
 				);
 
-				if ( ! $network['blocked'] )
-					throw new RuntimeException(
-						'HTTP worker can reach the internet. No competitors will be activated.',
-					);
+				assert_network_policy( $network, $target );
 
 				run_fixture_command( $plan, $run, $site, 'activate' );
 				$setup = run_fixture_command(
@@ -578,6 +574,9 @@ function collect_run( string $run ): array {
 					"$run/setup-{$site['id']}.json",
 					$setup,
 				);
+				$guards = fixture_control( $site, $target, 'guards' );
+				write_json( "$run/guards-{$site['id']}-after-setup.json", $guards );
+				assert_network_policy( $guards, $target, false );
 
 				if ( isset( $setup['account_connection'] ) ) {
 					$environment['conditions'][] = [
@@ -745,7 +744,9 @@ function collect_run( string $run ): array {
 				}
 
 				foreach ( $sites as $id => $site ) {
-					$after                      = fixture_control( $site, $target, 'runtime' );
+					$after                   = fixture_control( $site, $target, 'runtime' );
+					$after['network_policy'] = fixture_control( $site, $target, 'guards' );
+					assert_network_policy( $after['network_policy'], $target, false );
 					$after['opcache']['before'] = $runtime_before[ $id ]['opcache']['status'];
 					// Save the actual changed state even when its validation fails.
 					write_json(

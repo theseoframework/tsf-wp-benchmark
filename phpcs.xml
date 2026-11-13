@@ -27,6 +27,7 @@
 				<element value="approve_plan"/>
 				<element value="approved_plan"/>
 				<element value="assert_runtime"/>
+				<element value="assert_network_policy"/>
 				<element value="assess_runtime"/>
 				<element value="balanced_orders"/>
 				<element value="bootstrap_ratios"/>
@@ -56,6 +57,7 @@
 				<element value="next_random"/>
 				<element value="normalized_path"/>
 				<element value="normalize_worker_supervisor"/>
+				<element value="normalize_network_policy"/>
 				<element value="parse_arguments"/>
 				<element value="paired_agreement"/>
 				<element value="paired_cohort_verdict"/>
@@ -105,6 +107,7 @@
 				<element value="require_contained"/>
 				<element value="require_unlinked_path"/>
 				<element value="run_fixture_command"/>
+				<element value="run_network_policy"/>
 				<element value="runner_manifest"/>
 				<element value="selected_output"/>
 				<element value="shutdown_worker_supervisor"/>
@@ -197,6 +200,8 @@
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents">
 		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>
+		<!-- The guard atomically appends private metadata outside the served fixture. -->
+		<exclude-pattern>/scripts/guard\.php$</exclude-pattern>
 	</rule>
 	<rule ref="WordPress.WP.AlternativeFunctions.file_system_operations_fopen">
 		<exclude-pattern>/(?:benchmark\.php$|src/|tests/|scripts/(?:drop-owned-tables|fixture-cli|local-target)\.php$)</exclude-pattern>

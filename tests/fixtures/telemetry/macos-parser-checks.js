@@ -5,7 +5,7 @@
  */
 
 /**
- * Exercises the actual Mac telemetry parser with deterministic top output.
+ * Exercises the actual Mac telemetry parsers with deterministic native output.
  *
  * The PHP test appends these checks to either the Node or JXA loader. All
  * functions exercised here come from scripts/telemetry-macos.js.
@@ -120,3 +120,41 @@ if ( malformed.metrics.cpu_busy.value !== null )
 	throw new Error(
 		'Impossible CPU percentages must remain unavailable.',
 	);
+
+const iostatState = { pending: '', observation: null };
+const iostatHeader = '      cpu    load average\n us sy id   1m   5m   15m\n';
+const iostatLine = '  2  2 95  1.27 1.28 1.39\n';
+const memory = 'Mach Virtual Memory Statistics: (page size of 16384 bytes)\n'
+	+ 'Pages free: 275068.\nPages speculative: 45918.\n'
+	+ 'Pages inactive: 260816.\nPages purgeable: 9253.\n'
+	+ 'Swapins: 169212.\nSwapouts: 328396.\n';
+
+if ( collectIostatRows( iostatState, iostatHeader + iostatLine.slice( 0, 8 ), first, false ).length !== 0 )
+	throw new Error( 'Partial iostat rows must not become readings.' );
+
+const iostatRows = collectIostatRows( iostatState, iostatLine.slice( 8 ), second, false );
+
+if ( iostatRows.length !== 1 || iostatRows[0].observation.timestamp !== first.timestamp )
+	throw new Error( 'A partial iostat row acquired its completion timestamp.' );
+
+const iostatInitial = parseIostatSample( iostatLine, memory, first, 0 );
+const iostatMeasured = parseIostatSample( iostatLine, memory, second, 1 );
+
+if (
+	   iostatInitial.metrics.cpu_busy.value !== null
+	|| iostatMeasured.metrics.cpu_busy.value !== 5
+	|| iostatMeasured.metrics.cpu_busy.source !== 'macOS iostat'
+	|| iostatMeasured.metrics.available_memory.value !== null
+	|| iostatMeasured.metrics.free_and_speculative_memory.value !== 5259034624
+	|| iostatMeasured.metrics.swapins.value !== null
+	|| iostatMeasured.metrics.swapouts.value !== null
+	|| iostatMeasured.metrics.thermal_pressure.value !== second.thermalState
+) {
+	throw new Error( 'Fallback providers lost warmup, memory semantics, or provenance.' );
+}
+
+if ( parseIostatSample( '2 2 195 1.27 1.28 1.39', '', second, 1 ).metrics.cpu_busy.value !== null )
+	throw new Error( 'Impossible fallback CPU percentages must remain unavailable.' );
+
+if ( parseIostatSample( iostatLine, '', second, 1 ).metrics.free_and_speculative_memory.value !== null )
+	throw new Error( 'Missing vm_stat output must not become zero memory.' );

@@ -26,6 +26,16 @@ The collector runs on the server host and makes serial HTTP requests through loo
 
 Reference measurements have profiling disabled and warmed OPcache shared memory. Record the actual HTTP configuration and the connection-reuse policy. Use the same policy for every arm.
 
+### Network policy
+
+New targets default to `wordpress-http`: each fixture blocks WordPress HTTP and mail before tested plugins load, disables automatic updates, and privately logs refused calls. It requires no host firewall, network disconnection, or process sandbox. Raw cURL and socket calls are outside those hooks and are permitted under this policy. Keep that limitation in the report; diagnose suspected bypasses separately. Do not export refused URLs, which may contain credentials or site identifiers.
+
+Stronger `offline` or `external-firewall` policies are optional, require approval for their concrete setup, and retain the operator's verification and worker checks. Users may choose an isolated stack, including a container, instead of native processes; record its resource limits and environment differences. Do not install Docker or change a firewall merely to run the default experiment. Record the policy in the approved plan and evidence. Historical targets without an explicit policy retain their original external-isolation requirement; absence is not permission to relax an old plan. Compare sessions with different policies as different environment conditions, even when the package recipe is unchanged.
+
+Any outbound waiting inside a measured HTTP response is already in its elapsed time. Do not add an invented per-attempt penalty or subtract observed waiting afterward. Setup and separate background activity are outside that interval, although background work can affect the host. A blocked request measures plugin behavior under the declared block, not its behavior with a live remote service.
+
+Guard filtering and refused-call logging inside a measured response also contribute to that time. Apply the same controls to every configuration and retain their scope in the report; this is not a measurement of normal internet-connected service latency. Guard probes run outside the timed intervals.
+
 Nine arms use eighteen balanced request orders. Each arm appears equally often at each position, and every ordered predecessor pair occurs equally often. Each order has three warmups and six measured requests per arm and route. That produces 8,748 measured requests per pass. Three separately initialized passes provide repeatability evidence.
 
 Do not treat every serial request as an independent experiment. Preserve blocks and shared controls in uncertainty analysis. Extra samples do not repair broken controls, biased fixtures, changing settings, or missing features.
@@ -54,7 +64,7 @@ Reference-sized analysis uses at least 50,000 draws; smoke analysis retains the 
 
 Reference-sized threshold support requires positive simultaneous lower bounds for A and H across all five analyses, plus positive diagnostic lower bounds at the recipe's confidence level (95% for the reference recipe) for A and H in every pass. Opposing statistical decisions between passes are inconsistent; an unresolved pass makes that comparator inconclusive. Direct G intervals remain available independently of threshold qualification. Interpret a supported threshold verdict only as conditional evidence for this observed session. An uncertain comparator does not veto another comparator's result. A claim covering all comparators requires support for every declared comparator. The 10- and 40-iteration choices remain smoke-only; the 100-iteration choice is reference-sized, not automatically accurate.
 
-Incomplete observations, invalid responses, changing selected output, missing required features, broken isolation, blocking environment conditions, and unverified cleanup remain hard failures. Control disagreement, individual negative additions, timing drift, and influence remain visible diagnostics and uncertainty inputs. They no longer trigger version 1.0.0's global worst-block or all-positive-block timing vetoes. Stable output fingerprints do not guarantee stable timing.
+Incomplete observations, invalid responses, changing selected output, missing required features, failure of the declared network policy, blocking environment conditions, and unverified cleanup remain hard failures. Reachable raw sockets are a disclosed limitation under `wordpress-http`, not proof that its WordPress hooks failed. Control disagreement, individual negative additions, timing drift, and influence remain visible diagnostics and uncertainty inputs. They no longer trigger version 1.0.0's global worst-block or all-positive-block timing vetoes. Stable output fingerprints do not guarantee stable timing.
 
 ### Historical version 1.0.0 analysis
 

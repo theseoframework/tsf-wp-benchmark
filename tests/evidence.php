@@ -215,7 +215,7 @@ return [
 					],
 				],
 			);
-			foreach ( [ 'proposal.json', 'approval.json', 'isolation.private.json', 'setup-error-p1-tsf.log', 'fixture-p1-tsf.json' ] as $private )
+			foreach ( [ 'proposal.json', 'approval.json', 'isolation.private.json', 'setup-error-p1-tsf.log', 'fixture-p1-tsf.json', 'network-p1-tsf.private.ndjson' ] as $private )
 				file_put_contents(
 					$run . '/' . $private,
 					'PRIVATE_SENTINEL',

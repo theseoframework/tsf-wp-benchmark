@@ -10,8 +10,9 @@
 /**
  * Simulates mysqli cleanup without connecting to a database.
  *
- * The copied fixture runs with PHP's -n option and records connection arguments
- * and remaining tables even when the production script rejects the request.
+ * A test-owned copy imports the double under mysqli's name, including when the
+ * real extension is compiled in and PHP -n cannot disable it. Connection
+ * arguments and remaining tables are recorded even when cleanup rejects input.
  */
 
 $script  = array_splice( $argv, 1, 1 )[0];
@@ -47,7 +48,7 @@ if ( ! function_exists( 'ctype_digit' ) ) {
 /**
  * Records cleanup calls against an in-memory table inventory.
  */
-class mysqli {
+class TsfBenchmarkCleanupMysqli {
 
 	/**
 	 * Captures the exact connection arguments without opening a connection.
@@ -106,6 +107,27 @@ class mysqli {
 	}
 }
 
+// PHP -n cannot remove compiled-in mysqli; exercise that collision on every build.
+if ( ! class_exists( 'mysqli', false ) ) {
+	/**
+	 * Refuses database work if the production script's test-double import is lost.
+	 */
+	$unexpected_mysqli = new class {
+
+		/**
+		 * Fails without opening a database connection.
+		 *
+		 * @param string $sql The unexpected cleanup statement.
+		 * @return void
+		 * @throws RuntimeException Always, because cleanup must use its imported double.
+		 */
+		public function query( string $sql ): void {
+			throw new RuntimeException( 'Cleanup must use the imported mysqli double: ' . $sql );
+		}
+	};
+	class_alias( get_class( $unexpected_mysqli ), 'mysqli' );
+}
+
 /**
  * Saves observations after both ordinary completion and a production exit.
  *
@@ -123,4 +145,16 @@ register_shutdown_function(
 	},
 );
 
-require $script;
+$source = file_get_contents( $script );
+
+if ( false === $source || ! str_starts_with( $source, '<?php' ) )
+	throw new RuntimeException( 'Cannot read the cleanup script under test.' );
+
+$source = '<?php use TsfBenchmarkCleanupMysqli as mysqli;'
+	. substr( $source, strlen( '<?php' ) );
+$copy   = __DIR__ . '/cleanup-under-test.php';
+
+if ( strlen( $source ) !== file_put_contents( $copy, $source ) )
+	throw new RuntimeException( 'Cannot write the isolated cleanup script.' );
+
+require $copy;

@@ -10,7 +10,7 @@ Unknown, repeated, or empty options are rejected before execution. There is no `
 | `plan --recipe FILE --target PRIVATE_JSON --out NEW_DIRECTORY` | Save the concrete recipe, target, runner fingerprint, and proposal | A new private run directory; no site setup |
 | `approve --run DIRECTORY --operator NAME` | Record the user's explicit approval of that plan | Approval receipt bound to the plan hash |
 | `prepare --run DIRECTORY` | Obtain or reuse pinned archives and verify their hashes | Approved package cache and preparation evidence; no WordPress fixtures |
-| `isolation --run DIRECTORY --operator NAME --evidence DESCRIPTION` | Record the operator's verification of enforced outbound isolation | Private isolation receipt; no firewall changes |
+| `isolation --run DIRECTORY --operator NAME --evidence DESCRIPTION` | Record required external verification for stronger modes, or optional default-mode review | Private isolation receipt; no firewall changes |
 | `preflight --run DIRECTORY` | Qualify an approved Windows worker supervisor on real WordPress | One separately owned WordPress control, recycling/calibration evidence, and automatic fixture/server cleanup |
 | `run --run DIRECTORY` | Create fresh fixtures, activate/configure plugins, qualify the setup, and measure | Approved fixture files/tables and run evidence |
 | `cleanup --run DIRECTORY` | Remove verified run-owned fixture resources | Owned resources only; evidence remains |
@@ -25,12 +25,12 @@ Prefix each command with `php benchmark.php`. Use `php benchmark.php help` for t
 
 ```text
 doctor -> plan -> user approval -> approve -> prepare
-       -> enforced isolation and operator verification -> isolation
+       -> [stronger modes: enforced external controls -> isolation]
        -> preflight (when using worker_supervisor)
        -> run -> cleanup -> report -> verify -> export
 ```
 
-`approve` and `isolation` record decisions and evidence. They cannot make an unapproved action authorized or create network isolation. The agent must not invent either receipt.
+`approve` and `isolation` record decisions and evidence. They cannot make an unapproved action authorized or create network isolation. The agent must not invent either receipt. Default `wordpress-http` controls block and privately log WordPress HTTP/mail, with raw sockets outside their scope. The approved default plan needs no separate isolation receipt or extra approval prompt. The bracketed step is required only for `offline` and `external-firewall`, which require verified external restrictions. Old approved plans retain their recorded mode.
 
 The default report is `analysis_version=2.0.0`, method `paired-block-1`. An existing analysis is never overwritten with different results. Use `report --run SOURCE --out NEW_DIRECTORY` to preserve it and produce the current analysis in a fresh root public evidence bundle, then `verify --run NEW_DIRECTORY` to check that bundle. Evidence records both the collection runner and the analysis runner.
 
@@ -111,12 +111,17 @@ After approval to use Local and the dedicated site, these commands help inspect 
 | Command | Purpose |
 | --- | --- |
 | `localwp --help` | Inspect the installed command set |
+| `localwp new --help` | Inspect supported site-creation flags and runtime choices |
 | `localwp list --json` | Inspect site identities/status; select only the approved target |
 | `localwp info BENCHMARK-SITE --json` | Read the selected site's runtime details |
 | `localwp start BENCHMARK-SITE --no-progress` | Start only the approved site |
 | `localwp stop BENCHMARK-SITE --no-progress` | Stop only that site; never use `--all` |
 | `localwp cli BENCHMARK-SITE -- core version` | Verify the shell site's WordPress version; benchmark fixtures are verified separately over HTTP |
 | `localwp cli BENCHMARK-SITE -- eval-file /absolute/repository/scripts/local-target.php /absolute/private/target.json` | Export a new private target after approval |
+
+After setup approval, macOS can use `localwp new BENCHMARK-SITE` with only flags confirmed by the installed help to create its first site. Prefer the recipe's PHP 8.4.27 when available and record the actual database version. Disclose a newer PHP 8.4 or other selected runtime as a custom environment. Do not guess flags or silently accept newer defaults. The user enables the CLI through Local's profile icon -> Preferences -> Advanced -> Install Local CLI -> Apply.
+
+Every new site may request OS authentication, file access, or runtime installation. Warn before creation, pause for the user to handle prompts, and inspect the existing attempt before retrying. Keep OS passwords out of chat and command arguments. On Windows, complete the manual first-site check and release desktop control for inaccessible UAC prompts as described in [the workflow](agent-workflow.md).
 
 The tested Windows Local 10.2.0 supports JSON for `list`/`info`; its `start`/`stop` commands do not accept `--json`. WP-CLI arguments after `--` must be separate arguments. These details are observed compatibility notes, not a guarantee for every release or shell. Keep machine-specific paths in private configuration, not public instructions.
 
@@ -161,4 +166,4 @@ localwp cli BENCHMARK-SITE -- eval-file /absolute/repository/benchmark.php docto
 
 Alternatively, open the approved site's Local Site Shell and run `php /absolute/repository/benchmark.php doctor`. Keep commands compatible with the installed Local CLI, and do not silently enable or install a missing component.
 
-Local 10.2.0 on Windows requires separate WP-CLI arguments after `--`; do not quote the entire command as one string. Quote individual paths containing spaces and check that quoting on the installed shell. Complete the manual first-site permission check in [the agent workflow](agent-workflow.md) before automated setup.
+Local 10.2.0 on Windows requires separate WP-CLI arguments after `--`; do not quote the entire command as one string. Quote individual paths containing spaces and check that quoting on the installed shell. Follow the platform-specific first-site and per-site permission checks in [the agent workflow](agent-workflow.md).

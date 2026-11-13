@@ -2,13 +2,15 @@
 
 - Before setup or measurement, read `docs/agent-workflow.md`. Before explaining code quality, read `docs/code-quality.md`.
 - Start with read-only discovery. Offer Local's official CLI or a suitable existing native stack, and explain limitations in plain language.
+- Proactively estimate phase durations, tokens, and current-model API-equivalent cost. Recommend scope, let the user adjust, and respect supplied limits without asking for time or spending budgets.
+- After approval, macOS Local CLI may create the first dedicated site; Windows retains its manual first-site check. Hand OS prompts to the user for every new site; never request OS passwords in chat or command arguments.
 - Obtain explicit user approval before downloads, installation, site setup, configuration changes, network isolation changes, or privileged monitoring. A request to investigate is not setup approval.
 - Record approval only after the user gives it, bound to the exact plan. Never manufacture an approval record or treat a CLI flag as consent.
 - Use a dedicated, explicitly approved target. Do not pollute existing development sites or change unrelated services. Never stop all Local sites.
 - The user may choose the reference recipe, change it, or challenge the methodology. Preserve the actual recipe, its differences, and unfavorable results.
 - Use the repository runner for measurements. Do not invent sample counts, silently omit routes, retry selectively, or stop when a desired ratio appears.
 - Keep profiling out of reference measurements. Check effective HTTP runtime settings, OPcache shared memory, CPU load, and available thermal data. Missing telemetry is unknown, not healthy.
-- Enforce approved outbound isolation before activating tested plugins. Opt out of telemetry and retain the WordPress HTTP/mail guards.
+- Default to `wordpress-http`: block and privately log WordPress HTTP/mail, disable automatic updates and cron, and opt out of telemetry. Disclose raw sockets outside these hooks without blocking the run. Stronger external isolation is optional and needs explicit approval; preserve existing approved plans' modes.
 - Treat small runs as smoke tests or narrowly scoped investigations. Broad claims require the complete declared workload and repeatability evidence.
 - Keep credentials, local paths, unrelated site content, and private configuration out of public exports. Store local run files under `.local/`.
 - Clean up only resources owned by the approved run. Retain evidence and report anything that could not be removed safely.

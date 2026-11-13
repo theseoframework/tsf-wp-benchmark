@@ -26,7 +26,60 @@ try {
 	);
 
 	switch ( $input['action'] ?? '' ) {
+		case 'guards':
 		case 'isolation':
+			$network_mode = defined( 'TSF_BENCH_NETWORK_MODE' ) ? TSF_BENCH_NETWORK_MODE : 'offline';
+			if ( ! in_array( $network_mode, [ 'wordpress-http', 'offline', 'external-firewall' ], true ) )
+				throw new RuntimeException( 'Unknown network policy.' );
+
+			// Run filters directly: a broken guard must not make a real request.
+			// Preserve WordPress's parsed-argument shape for other plugin filters.
+			$http_args         = [
+				'method'              => 'GET',
+				'timeout'             => 5,
+				'redirection'         => 5,
+				'httpversion'         => '1.0',
+				'user-agent'          => 'TSF WordPress Benchmark guard probe',
+				'reject_unsafe_urls'  => false,
+				'blocking'            => true,
+				'headers'             => [],
+				'cookies'             => [],
+				'body'                => null,
+				'compress'            => false,
+				'decompress'          => true,
+				'sslverify'           => true,
+				'sslcertificates'     => ABSPATH . WPINC . '/certificates/ca-bundle.crt',
+				'stream'              => false,
+				'filename'            => null,
+				'limit_response_size' => null,
+			];
+			$mail_args         = [
+				'to'          => [ 'benchmark@example.invalid' ],
+				'subject'     => 'Benchmark guard probe',
+				'message'     => '',
+				'headers'     => [],
+				'attachments' => [],
+				'embeds'      => [],
+			];
+			$http              = apply_filters( 'pre_http_request', false, $http_args, 'https://example.invalid/tsf-benchmark-guard' );
+			$update_guards     = true;
+			foreach ( [ 'core', 'plugin', 'theme', 'translation' ] as $update_type )
+				$update_guards = $update_guards && PHP_INT_MAX === has_filter( 'auto_update_' . $update_type, 'tsfb_prevent_auto_update' );
+			$data              = [
+				'mode'                       => $network_mode,
+				'wordpress_http_blocked'     => is_wp_error( $http ) && 'benchmark_offline' === $http->get_error_code(),
+				'wordpress_mail_blocked'     => false === apply_filters( 'pre_wp_mail', null, $mail_args ),
+				'automatic_updates_disabled' => defined( 'AUTOMATIC_UPDATER_DISABLED' ) && true === AUTOMATIC_UPDATER_DISABLED
+					&& defined( 'WP_AUTO_UPDATE_CORE' ) && false === WP_AUTO_UPDATE_CORE
+					&& true === apply_filters( 'automatic_updater_disabled', false )
+					// Do not invent update offers for third-party update filters.
+					&& $update_guards,
+				'cron_disabled'              => defined( 'DISABLE_WP_CRON' ) && true === DISABLE_WP_CRON,
+				'blocked'                    => null,
+				'scope'                      => 'WordPress HTTP/mail only; direct cURL and raw sockets are uncontrolled. In-response waiting remains measured.',
+			];
+			if ( 'wordpress-http' === $network_mode || 'guards' === $input['action'] ) break;
+
 			$results = [];
 
 			foreach ( [ '1.1.1.1', '8.8.8.8' ] as $host ) {
@@ -42,11 +95,9 @@ try {
 					fclose( $socket );
 			}
 
-			$data = [
-				'blocked' => ! in_array( 'reachable', $results, true ),
-				'probes'  => $results,
-				'scope'   => 'TCP canaries supplement operator verification of enforced isolation; they do not prove arbitrary egress is impossible.',
-			];
+			$data['blocked'] = ! in_array( 'reachable', $results, true );
+			$data['probes']  = $results;
+			$data['scope']   = 'TCP canaries supplement operator verification of enforced isolation; they do not prove arbitrary egress is impossible.';
 			break;
 
 		case 'context':

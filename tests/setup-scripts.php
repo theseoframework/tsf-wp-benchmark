@@ -64,7 +64,7 @@ function setup_script_fixture( string $name ): string {
  * @param string $fixture     The bootstrap filename under tests/fixtures/setup.
  * @param string $script      The production script exercised by the bootstrap.
  * @param array  $arguments   Arguments passed directly to the production script.
- * @param bool   $without_ini Whether to disable extensions for a mysqli stub.
+ * @param bool   $without_ini Whether to skip INI configuration in the child.
  * @return array Process status, stdout, and stderr from the existing runner.
  * @throws RuntimeException When bootstrap storage or the isolated process fails.
  */
@@ -549,7 +549,7 @@ return [
 				);
 				expect(
 					0 === $process['exit'],
-					"Cleanup must support the declared database host: $host",
+					"Cleanup must support the declared database host: $host. " . $process['stderr'],
 				);
 				$cleanup_receipt = json_decode( $process['stdout'], true, 512, JSON_THROW_ON_ERROR );
 				expect(

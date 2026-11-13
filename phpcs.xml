@@ -74,6 +74,16 @@
 				<element value="render_environment"/>
 				<element value="render_fixture_config"/>
 				<element value="render_report"/>
+				<element value="render_compact_report"/>
+				<element value="report_compact_chart"/>
+				<element value="report_compact_fold"/>
+				<element value="report_compact_routes"/>
+				<element value="report_compact_warnings"/>
+				<element value="presentation_renderer_sha256"/>
+				<element value="read_presentation"/>
+				<element value="write_presentation"/>
+				<element value="verify_presentation"/>
+				<element value="render_saved_report"/>
 				<element value="render_paired_report"/>
 				<element value="report_escape"/>
 				<element value="report_number"/>

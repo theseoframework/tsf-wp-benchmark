@@ -77,11 +77,19 @@ The complete nine-route Windows observations were regenerated with the adopted v
 
 All 113 existing regression cases pass, with no new cases added. One existing historical timing-gate case explicitly uses the version 1 analyzer. PHP coding-standard checks pass. The fresh public export has 338 files including its manifest; every packaged file was verified restorable byte-for-byte. A separate 32-file analysis source archive identifies the frozen implementation. Numerical replay, final rendered-output equivalence, both public manifests, and the original ZIP fingerprint were verified. No WordPress collection, TSF change, installation, or Git command was performed.
 
+## Compact report presentation
+
+New reports use a compact overview with two comparison charts, visible qualifications, and deferred detailed sections. Detailed tables are created when their disclosure opens and released when it closes. Per-route disclosures load independently. An expanded HTML fallback remains available without JavaScript.
+
+An isolated headless Chrome check on Windows measured 183 initial elements and no detailed table rows, versus 4,248 elements and 818 rows in the preserved expanded report. Opening one route produced ten table rows; closing its parent released the added DOM. Desktop and mobile layouts had no horizontal overflow, runtime exceptions, or external report requests. The charts and expanded fallback remained available with JavaScript disabled. No user browser windows or Edge were controlled.
+
+The saved-summary render command copied the numerical summary byte-for-byte, and its expanded fallback matched the original report byte-for-byte. It did not recalculate statistics or run WordPress. All 113 existing regression cases and PHP coding-standard checks pass; no new test cases were added. These are presentation checks, not new plugin performance measurements.
+
 ## Remaining validation
 
 1. macOS execution using the [Mac checklist](macos-validation.md). Windows checks do not certify this path.
 2. An independent operator's fresh experiment. Replaying saved evidence verifies analysis, not independent collection.
 
-No new plugin performance claim follows from the synthetic tests. The historical 1.52× result used TSF 5.2.0; this repository's new portable recipe must establish its own result.
+No new plugin performance claim follows from the synthetic tests. The historical 1.52× result used TSF 5.2.0 and is separate from this repository's completed Windows collection with TSF 5.2.1. The retrospective paired result is recorded above; independent confirmation remains pending.
 
 The provided CI matrix covers Windows, macOS, and Linux with PHP 8.2 and 8.4. It has not run merely because its workflow file exists.

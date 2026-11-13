@@ -156,10 +156,22 @@ function render_environment( array $environment ): string {
  * No fonts, scripts, tracking, or assets are fetched. Added-response ratios and
  * whole-response ratios are labelled separately to prevent a CPU-time claim.
  *
- * @param array $analysis Deterministic output from analyze().
+ * @param array  $analysis Deterministic output from analyze().
+ * @param string $renderer Recorded presentation version, separate from analysis.
  * @return string Complete escaped HTML document.
+ * @throws \RuntimeException When the requested renderer or analysis is unsupported.
  */
-function render_report( array $analysis ): string {
+function render_report( array $analysis, string $renderer = 'expanded-1' ): string {
+
+	if ( ! \in_array( $renderer, [ 'expanded-1', 'compact-1' ], true ) )
+		throw new \RuntimeException( 'Unsupported report renderer.' );
+
+	if ( 'compact-1' === $renderer ) {
+		if ( '2.0.0' !== $analysis['analysis_version'] )
+			throw new \RuntimeException( 'The compact renderer requires analysis version 2.0.0.' );
+
+		return render_compact_report( $analysis );
+	}
 
 	if ( '2.0.0' === $analysis['analysis_version'] )
 		return render_paired_report( $analysis );

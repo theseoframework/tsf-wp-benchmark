@@ -924,8 +924,15 @@ function read_samples( string $path ): array {
  */
 function report_run( string $run, bool $verify = false ): array {
 
-	$existing = is_file( "$run/summary.json" ) ? read_json( "$run/summary.json" ) : null;
-	$version  = null === $existing ? '2.0.0' : ( $existing['analysis_version'] ?? null );
+	$existing     = is_file( "$run/summary.json" ) ? read_json( "$run/summary.json" ) : null;
+	$version      = null === $existing ? '2.0.0' : ( $existing['analysis_version'] ?? null );
+	$presentation = read_presentation( $run );
+	$renderer     = $presentation['renderer'] ?? ( null === $existing ? 'compact-1' : 'expanded-1' );
+
+	if ( true === ( $presentation['presentation_only'] ?? false ) )
+		throw new RuntimeException(
+			'A presentation-only view cannot be numerically verified or reanalyzed. Use the original public evidence export.',
+		);
 
 	if ( ! \in_array( $version, [ '1.0.0', '2.0.0' ], true ) )
 		throw new RuntimeException( 'Unsupported saved analysis version.' );
@@ -999,16 +1006,20 @@ function report_run( string $run, bool $verify = false ): array {
 				'Numerical replay or provenance differs from saved report.',
 			);
 
-		if ( file_get_contents( "$run/report.html" ) !== render_report( $analysis ) )
+		if ( null === $presentation && file_get_contents( "$run/report.html" ) !== render_report( $analysis, $renderer ) )
 			throw new RuntimeException( 'Rendered report differs.' );
 
-		return [
+		$result                     = [
 			'verified'                          => true,
 			'summary_sha256'                    => digest( $analysis ),
 			'historical_analysis_runner_sha256' => $historical_runner,
 			'replay_runner_sha256'              => $current_runner,
 			'analysis_runner_matches'           => hash_equals( $historical_runner, $current_runner ),
 		];
+		if ( null !== $presentation )
+			$result['presentation'] = verify_presentation( $run, $analysis );
+
+		return $result;
 	}
 
 	if (
@@ -1021,10 +1032,14 @@ function report_run( string $run, bool $verify = false ): array {
 	}
 
 	write_json( "$run/summary.json", $analysis );
-	write_bytes(
-		"$run/report.html",
-		render_report( $analysis ),
-	);
+	if ( 'compact-1' === $renderer ) {
+		write_presentation( $run, $analysis );
+	} else {
+		write_bytes(
+			"$run/report.html",
+			render_report( $analysis, $renderer ),
+		);
+	}
 	$csv     = fopen( 'php://temp', 'w+' );
 	$columns = [
 		'pass',

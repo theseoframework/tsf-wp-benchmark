@@ -62,7 +62,7 @@ The original method computed each route's plugin median minus its pooled WordPre
 
 For example, the first Windows pass's blog homepage had a WordPress-only median of **163.858 ms** and TSF median of **169.877 ms**, an estimated addition of **6.020 ms**. The largest control disagreement was **24.234 ms**, and two blocks had negative additions. All 27 TSF route/pass estimates were positive, but all failed the old control-variation guard; 26 also failed the old all-positive-block guard. The original complete-cohort verdict remains **inconclusive** under that version. Removing the gates alone does not solve unstable ratio denominators, as the [statistical review](statistical-review.md) shows.
 
-The earlier archived 1.52x comparison with Slim SEO used **TSF 5.2.0**. It is not a matched result for TSF 5.2.1. A new reference result requires fresh matched collection with the released 5.2.1 package and all declared competitors.
+The earlier archived 1.52x comparison with Slim SEO used **TSF 5.2.0**. It is not a matched result for TSF 5.2.1. The completed Windows collection used released TSF 5.2.1 and all declared competitors; its paired reanalysis is recorded separately. Independent confirmation still requires a fresh matched collection.
 
 ## Repeatability and evidence replay
 

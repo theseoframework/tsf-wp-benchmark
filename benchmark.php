@@ -42,6 +42,8 @@ foreach ( [
 	'Protocol',
 	'Report',
 	'PairedReport',
+	'CompactReport',
+	'Presentation',
 	'Transport',
 	'Environment',
 	'Telemetry',
@@ -74,6 +76,7 @@ function parse_arguments( array $arguments ): array {
 		'plan'      => [ 'recipe', 'target', 'out' ],
 		'preflight' => [ 'run' ],
 		'prepare'   => [ 'run' ],
+		'render'    => [ 'run', 'out' ],
 		'report'    => [ 'run', 'out' ],
 		'run'       => [ 'run' ],
 		'verify'    => [ 'run' ],
@@ -134,7 +137,7 @@ function main( array $arguments ): int {
 		$read_only             = (
 			\in_array(
 				$command,
-				[ 'verify', 'export' ],
+				[ 'verify', 'export', 'render' ],
 				true,
 			)
 			|| ( 'report' === $command && isset( $options['out'] ) )
@@ -210,6 +213,12 @@ function main( array $arguments ): int {
 					)
 					: report_run( absolute_path( $need( 'run' ) ) );
 				break;
+			case 'render':
+				$result = render_saved_report(
+					absolute_path( $need( 'run' ) ),
+					$need( 'out' ),
+				);
+				break;
 			case 'verify':
 				$run = absolute_path( $need( 'run' ) );
 
@@ -249,6 +258,7 @@ function main( array $arguments ): int {
 						'run --run DIRECTORY',
 						'cleanup --run DIRECTORY',
 						'report --run DIRECTORY [--out NEW_DIRECTORY]',
+						'render --run PUBLIC_DIRECTORY --out NEW_DIRECTORY',
 						'verify --run DIRECTORY',
 						'export --run DIRECTORY --out NEW_DIRECTORY',
 					],

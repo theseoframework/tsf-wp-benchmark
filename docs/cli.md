@@ -15,6 +15,7 @@ Unknown, repeated, or empty options are rejected before execution. There is no `
 | `run --run DIRECTORY` | Create fresh fixtures, activate/configure plugins, qualify the setup, and measure | Approved fixture files/tables and run evidence |
 | `cleanup --run DIRECTORY` | Remove verified run-owned fixture resources | Owned resources only; evidence remains |
 | `report --run DIRECTORY [--out NEW_DIRECTORY]` | Analyze observations with the paired default and render the report | Summary JSON, request CSV, and HTML report; use a fresh output for changed analysis |
+| `render --run PUBLIC_DIRECTORY --out NEW_DIRECTORY` | Refresh the presentation of a saved version 2 public summary | A separate compact report, expanded fallback, byte-identical summary, and presentation receipt; no statistical recalculation |
 | `verify --run DIRECTORY` | Recalculate and compare the saved analysis and report using its recorded analysis version | Nothing |
 | `export --run DIRECTORY --out NEW_DIRECTORY` | Create a shareable evidence bundle from the allowed public artifacts | A new export directory; no automatic publication |
 
@@ -33,7 +34,11 @@ doctor -> plan -> user approval -> approve -> prepare
 
 The default report is `analysis_version=2.0.0`, method `paired-block-1`. An existing analysis is never overwritten with different results. Use `report --run SOURCE --out NEW_DIRECTORY` to preserve it and produce the current analysis in a fresh root public evidence bundle, then `verify --run NEW_DIRECTORY` to check that bundle. Evidence records both the collection runner and the analysis runner.
 
+New reports use the `compact-1` presentation, with comparisons and important limitations first and detailed evidence loaded when expanded. `details.html` retains the complete expanded view without JavaScript. A separate `presentation.json` binds the renderer version and its source fingerprint to the exact summary bytes. Presentation versions do not alter the recorded analysis version or its provenance.
+
 `verify` dispatches by the saved analysis version. A historical version 1.0.0 summary and report retain their legacy calculations and provenance; verification does not silently replace them with the current default. Its current replay fingerprint is recorded separately from the historical provenance.
+
+Historical reports without `presentation.json` retain the `expanded-1` renderer for exact HTML verification, including existing version 2 reports. Compact reports also verify their expanded fallback and presentation receipt. A historical renderer source fingerprint is preserved; the current fingerprint is reported separately, and matching rendered bytes remain the presentation check.
 
 Public evidence bundles remain immutable. Re-export and alternate analysis verify the source manifest first and write to a fresh destination; they do not add lock files or rewrite the source.
 
@@ -42,6 +47,16 @@ Downloads are disabled in the target example. Enabling them is part of the setup
 Run directories are private. The target and plan can contain database credentials, and isolation evidence can describe local configuration. Do not publish a whole run directory. Share the reviewed export, without adding private logs or configuration files.
 
 ## Current paired analysis and historical review
+
+To refresh only the layout of an existing version 2 public export:
+
+```sh
+php benchmark.php render --run .local/my-paired-evidence --out .local/my-report-view
+```
+
+This checks the original public manifest before and after rendering, copies `summary.json` byte-for-byte, and produces `report.html`, `details.html`, and `presentation.json` in a fresh directory outside the source. It performs no WordPress requests, statistical analysis, bootstrap draws, CSV regeneration, site startup, installation, or plugin changes. The receipt records `presentation_only: true`, the source manifest hash, and artifact hashes. The existing numerical estimates, verdict, historical provenance, and retrospective status remain unchanged.
+
+The view is a presentation artifact, not a new public evidence export. It does not contain the raw evidence or a public `manifest.json`. Use `verify --run ORIGINAL_PUBLIC_DIRECTORY` for full numerical replay. The PHP helper `verify_presentation()` checks the view's receipt and rendered bytes without recalculating statistics; the CLI `verify` command rejects presentation-only views. Keep the original export alongside any shared view.
 
 To regenerate the complete comparison from existing evidence without collecting again:
 

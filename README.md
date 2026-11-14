@@ -21,6 +21,14 @@ Show me the downloads, site changes, network controls, expected workload,
 and cleanup. Wait for my approval before installing or setting anything up.
 Then run the approved experiment, check its consistency, and explain the
 results and limitations. Keep the evidence even if TSF does not win.
+
+Use my usual preferences and your coding-agent standards for the work and
+explanation. At the end of each plan or approval request, add a recap of
+at most five short bullets, aiming for 100 words total: recommendation
+first, then scope, changes/permissions, estimated time/cost, and key limits.
+Use plain words, bold key facts, and no nested lists. End with one concrete
+next action or decision. Apply this format only to that ending; keep the
+full proposal above it and respect choices and approvals already given.
 ```
 
 ## First time using Local?
@@ -133,6 +141,14 @@ downloads, site changes, network controls, expected workload, and cleanup.
 Wait for my approval before installing or setting anything up.
 Then run the approved experiment and explain its consistency, results,
 and limitations. Keep all evidence regardless of which plugin wins.
+
+Use my usual preferences and your coding-agent standards for the work and
+explanation. At the end of each plan or approval request, add a recap of
+at most five short bullets, aiming for 100 words total: recommendation
+first, then scope, changes/permissions, estimated time/cost, and key limits.
+Use plain words, bold key facts, and no nested lists. End with one concrete
+next action or decision. Apply this format only to that ending; keep the
+full proposal above it and respect choices and approvals already given.
 ```
 
 The supported plugins are those listed above. Other plugins need verified setup and output checks before they can be compared. The same measurement and evidence rules apply whichever plugin is the anchor; changing the participants does not make a result universal.
